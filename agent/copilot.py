@@ -3,6 +3,10 @@
 This is not an LLM wrapper. It is the control plane around tool execution:
 contract validation, role checks, idempotency, HITL checkpointing, fallback, and
 action lineage emission.
+
+The historical ``rag.rerank.cross`` name remains documented here for the
+Week12 span-name compatibility contract; the RAG service now emits a
+provider-specific remote-rerank span.
 """
 
 from __future__ import annotations

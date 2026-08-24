@@ -154,6 +154,8 @@ class EmbeddingProvider:
 
     def __init__(self, model: str | None = None):
         self._model = model or os.environ.get("EMBEDDING_MODEL", "auto")
+        self._provider = os.environ.get("EMBEDDING_PROVIDER", "auto").strip().lower()
+        self._dimensions = int(os.environ.get("EMBEDDING_DIMENSIONS", str(EMBEDDING_DIM)))
         self._backend = None
 
     def _init_backend(self):
@@ -177,7 +179,9 @@ class EmbeddingProvider:
     def _try_init(self, model: str):
         if model == "voyage-2":
             return self._init_voyage()
-        if model.startswith("text-embedding"):
+        if model.startswith("text-embedding") or self._provider in {
+            "openai", "openai_compatible", "siliconflow"
+        } or "/" in model:
             return self._init_openai(model)
         if model in {"deterministic", "local-hash", "course-local"}:
             return self._init_deterministic()
@@ -199,12 +203,22 @@ class EmbeddingProvider:
 
     def _init_openai(self, model: str):
         try:
-            if not os.environ.get("OPENAI_API_KEY"):
+            api_key = (
+                os.environ.get("EMBEDDING_API_KEY")
+                or os.environ.get("SILICONFLOW_API_KEY")
+                or os.environ.get("OPENAI_API_KEY")
+            )
+            if not api_key:
                 return None
             from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-            logger.info(f"Using OpenAI embeddings ({model}, dim=1536)")
-            return ("openai", client, model, 1536)
+            base_url = os.environ.get("EMBEDDING_BASE_URL") or None
+            client = OpenAI(api_key=api_key, base_url=base_url)
+            logger.info(
+                "Using OpenAI-compatible embeddings (%s, dim=%s)",
+                model,
+                self._dimensions,
+            )
+            return ("openai_compatible", client, model, self._dimensions)
         except Exception:
             return None
 
@@ -230,8 +244,8 @@ class EmbeddingProvider:
             result = client.embed(texts, model=model, input_type="document")
             return result.embeddings
 
-        if backend_type == "openai":
-            resp = client.embeddings.create(input=texts, model=model)
+        if backend_type == "openai_compatible":
+            resp = client.embeddings.create(input=texts, model=model, dimensions=dim)
             return [item.embedding for item in resp.data]
 
         if backend_type == "local":

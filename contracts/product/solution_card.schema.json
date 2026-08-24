@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omnisupport.local/contracts/product/solution_card.schema.json",
+  "title": "Webhook Troubleshooting Solution Card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "steps",
+    "citations",
+    "confidence",
+    "needs_clarification",
+    "abstain_reason",
+    "proposed_action",
+    "release_id",
+    "trace_id"
+  ],
+  "properties": {
+    "summary": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "steps": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {"type": "string", "minLength": 1, "maxLength": 1000}
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "source"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "needs_clarification": {"type": "boolean"},
+    "abstain_reason": {"type": ["string", "null"]},
+    "proposed_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "control"],
+      "properties": {
+        "operation": {"enum": ["none", "add_internal_note", "grant_service_credit"]},
+        "control": {"enum": ["none", "confirm", "hitl"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"operation": {"const": "none"}}}, "then": {"properties": {"control": {"const": "none"}}}},
+        {"if": {"properties": {"operation": {"const": "add_internal_note"}}}, "then": {"properties": {"control": {"const": "confirm"}}}},
+        {"if": {"properties": {"operation": {"const": "grant_service_credit"}}}, "then": {"properties": {"control": {"const": "hitl"}}}}
+      ]
+    },
+    "release_id": {"type": "string", "minLength": 1},
+    "trace_id": {"type": "string", "minLength": 1}
+  }
+}

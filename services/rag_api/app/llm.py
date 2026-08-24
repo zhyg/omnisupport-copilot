@@ -34,6 +34,7 @@ class LLMNotConfiguredError(RuntimeError):
 PROVIDER_DEFAULTS = {
     "anthropic": ("claude-sonnet-4-6", None),
     "openai": ("gpt-5-mini", None),
+    "siliconflow": ("Qwen/Qwen3.5-27B", "https://api.siliconflow.cn/v1"),
     "deepseek": ("deepseek-v4-flash", "https://api.deepseek.com"),
     "qwen": ("qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
     "kimi": ("kimi-k2.5", "https://api.moonshot.cn/v1"),
@@ -51,6 +52,7 @@ def resolve_llm_runtime(
     keys = {
         "anthropic": settings.anthropic_api_key,
         "openai": settings.openai_api_key,
+        "siliconflow": settings.siliconflow_api_key,
         "deepseek": settings.deepseek_api_key,
         "qwen": settings.dashscope_api_key,
         "kimi": settings.kimi_api_key or settings.moonshot_api_key,
@@ -58,7 +60,18 @@ def resolve_llm_runtime(
     }
     if provider == "auto":
         provider = next(
-            (name for name in ("anthropic", "openai", "deepseek", "qwen", "kimi") if keys[name]),
+            (
+                name
+                for name in (
+                    "anthropic",
+                    "openai",
+                    "siliconflow",
+                    "deepseek",
+                    "qwen",
+                    "kimi",
+                )
+                if keys[name]
+            ),
             "fallback",
         )
     if provider == "fallback":
@@ -280,7 +293,7 @@ async def _openai_compatible_completion(
         "max_tokens": max_tokens or settings.llm_max_tokens,
         "temperature": settings.llm_temperature if temperature is None else temperature,
     }
-    if json_mode and json_schema and runtime.provider == "openai":
+    if json_mode and json_schema and runtime.provider in {"openai", "siliconflow"}:
         request["response_format"] = {
             "type": "json_schema",
             "json_schema": {
@@ -291,6 +304,12 @@ async def _openai_compatible_completion(
         }
     elif json_mode:
         request["response_format"] = {"type": "json_object"}
+    if runtime.provider == "siliconflow":
+        # Qwen reasoning models may otherwise spend the bounded completion
+        # budget on reasoning_content and return an empty visible response.
+        # SiliconFlow exposes this provider-specific switch on its compatible
+        # Chat Completions endpoint.
+        request["extra_body"] = {"enable_thinking": False}
     response = await client.chat.completions.create(**request)
     text = response.choices[0].message.content if response.choices else None
     if not text or not text.strip():

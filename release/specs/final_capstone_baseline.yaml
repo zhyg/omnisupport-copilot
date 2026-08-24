@@ -1,0 +1,90 @@
+components:
+  data:
+    release_id: data-capstone-webhook-v2
+    lakefs_repository: omnisupport-data
+    lakefs_ref: refs/tags/data-capstone-webhook-v2
+    iceberg_snapshot_ids:
+      bronze.ticket_event: capstone-webhook-v2
+      silver.ticket_current: capstone-webhook-v2
+    source_paths:
+      - assignments/final_capstone/yangong/data/manifest_webhook_troubleshooting.json
+  index:
+    release_id: index-capstone-qwen3-1536-v1
+    data_release_id: data-capstone-webhook-v2
+    embedding_model: Qwen/Qwen3-Embedding-4B@1536
+    source_paths:
+      - reports/capstone/bootstrap-all.json
+  prompt:
+    release_id: prompt-solution-card-v1
+    template_versions:
+      answer: answer_v1
+      no_answer: no_answer_v1
+      solution_card: solution_card_v1
+    source_paths:
+      - services/rag_api/app/prompts/answer_v1.md
+      - services/rag_api/app/prompts/solution_card_v1.md
+  model:
+    release_id: model-siliconflow-final-v1
+    provider: siliconflow
+    model_id: Qwen/Qwen3.5-27B
+    snapshot: Qwen/Qwen3.5-27B@provider-pinned-2026-08-23
+    system_card: assignments/final_capstone/yangong/contracts/capability.md
+    models:
+      generation: Qwen/Qwen3.5-27B
+      embedding: Qwen/Qwen3-Embedding-4B
+      rerank: Pro/BAAI/bge-reranker-v2-m3
+    source_paths:
+      - assignments/final_capstone/yangong/contracts/capability.md
+  skills:
+    release_id: skills-capstone-existing-v1
+    packs:
+      - add_internal_note@existing
+      - grant_service_credit@existing
+    source_paths:
+      - contracts/tools/tool_contract_schema.json
+      - contracts/tools/tools/ticket_update.json
+  graph:
+    release_id: graph-capstone-webhook-v2
+    schema_version: graph_schema_v1
+    source_paths:
+      - data/capstone/graph_annotations_v1.json
+quality:
+  eval:
+    run_id: eval-final-capstone-candidate-fixed
+    gate_status: pass
+    report_path: reports/capstone/solution-card-eval-candidate.json
+    source_paths:
+      - reports/capstone/solution-card-eval-candidate.json
+business_slo:
+  policy_id: week12-slo-v1
+  status: pass
+  source_paths:
+    - observability/slo/week12_slo.yaml
+rollout:
+  stages:
+    - traffic_percent: 5
+      min_samples: 8
+      min_observation_minutes: 1
+      gates: [{metric: key_point_pass_rate, operator: ">=", threshold: 0.80}]
+      baseline_guards: [{metric: unsafe_action_bypass_count, operator: "<=", threshold: 0}]
+    - traffic_percent: 25
+      min_samples: 8
+      min_observation_minutes: 1
+      gates: [{metric: citation_support_proxy_rate, operator: ">=", threshold: 1.0}]
+      baseline_guards: [{metric: unsafe_action_bypass_count, operator: "<=", threshold: 0}]
+    - traffic_percent: 50
+      min_samples: 8
+      min_observation_minutes: 1
+      gates: [{metric: key_point_pass_rate, operator: ">=", threshold: 0.80}]
+      baseline_guards: [{metric: unsafe_action_bypass_count, operator: "<=", threshold: 0}]
+    - traffic_percent: 100
+      min_samples: 8
+      min_observation_minutes: 1
+      gates: [{metric: key_point_pass_rate, operator: ">=", threshold: 0.80}]
+      baseline_guards: [{metric: unsafe_action_bypass_count, operator: "<=", threshold: 0}]
+  red_lines:
+    - {metric: unsafe_action_bypass_count, operator: ">", threshold: 0}
+governance:
+  change_ticket: CHG-FINAL-CAPSTONE-WEBHOOK
+  data_classification: internal
+  required_approvals: [release_owner, service_owner]

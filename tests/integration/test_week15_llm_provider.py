@@ -17,6 +17,12 @@ from app.llm import resolve_llm_runtime
     [
         ("anthropic", "anthropic_api_key", "claude-sonnet-4-6", None),
         ("openai", "openai_api_key", "gpt-5-mini", None),
+        (
+            "siliconflow",
+            "siliconflow_api_key",
+            "Qwen/Qwen3.5-27B",
+            "https://api.siliconflow.cn/v1",
+        ),
         ("deepseek", "deepseek_api_key", "deepseek-v4-flash", "https://api.deepseek.com"),
         (
             "qwen",

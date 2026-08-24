@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     llm_provider: str = "auto"
     llm_base_url: str = ""
     openai_api_key: str = ""
+    siliconflow_api_key: str = ""
     anthropic_api_key: str = ""
     deepseek_api_key: str = ""
     dashscope_api_key: str = ""
@@ -42,6 +43,11 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.6
     rerank_enabled: bool = True
+    rerank_provider: Literal["auto", "siliconflow", "disabled"] = "auto"
+    rerank_base_url: str = "https://api.siliconflow.cn/v1"
+    rerank_api_key: str = ""
+    rerank_model: str = "Pro/BAAI/bge-reranker-v2-m3"
+    rerank_timeout_seconds: float = Field(default=8.0, gt=0.0, le=30.0)
     graph_classifier_threshold: float = 0.70
     graph_max_hops: int = 3
     graph_default_visibility_scope: str = "internal"

@@ -13,9 +13,13 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Sequence
 
+import httpx
+
+from app.config import settings
 from observability.runtime import traced_span
 
 logger = logging.getLogger(__name__)
@@ -55,6 +59,10 @@ class RetrievalResult:
     fts_score: float = 0.0
     rrf_score: float = 0.0
     rerank_score: float | None = None
+    rerank_provider: str = "none"
+    rerank_model: str = "none"
+    rerank_fallback_reason: str | None = None
+    rerank_latency_ms: float = 0.0
 
     @property
     def final_score(self) -> float:
@@ -375,53 +383,89 @@ def reciprocal_rank_fusion(
     return merged
 
 
-# ── Cross-Encoder Rerank ──────────────────────────────────────────────────────
+# ── Governed remote rerank ────────────────────────────────────────────────────
 
-class CrossEncoderReranker:
-    """
-    Cross-Encoder 精排。
-    优先使用 sentence-transformers cross-encoder，
-    不可用时跳过（保留 RRF 排序）。
-    """
+class RemoteReranker:
+    """SiliconFlow-compatible reranker with bounded inputs and RRF fallback."""
 
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
-        self._model = None
-        self._model_name = model_name
+    @property
+    def provider(self) -> str:
+        if settings.rerank_provider == "disabled":
+            return "disabled"
+        return "siliconflow"
 
-    def _get_model(self):
-        if self._model is None:
+    @property
+    def model(self) -> str:
+        return settings.rerank_model
+
+    async def rerank(
+        self, query: str, results: list[RetrievalResult]
+    ) -> tuple[list[RetrievalResult], str | None, float]:
+        started = time.perf_counter()
+        api_key = (
+            settings.rerank_api_key
+            or settings.openai_api_key
+            or settings.siliconflow_api_key
+            or os.environ.get("SILICONFLOW_API_KEY", "")
+        )
+        fallback_reason = None
+        if settings.rerank_provider == "disabled":
+            fallback_reason = "rerank_disabled"
+        elif not api_key:
+            fallback_reason = "rerank_not_configured"
+        elif not results:
+            fallback_reason = "no_candidates"
+        else:
             try:
-                from sentence_transformers import CrossEncoder
-                self._model = CrossEncoder(self._model_name)
-                logger.info(f"Cross-encoder loaded: {self._model_name}")
-            except Exception as e:
-                logger.warning(f"Cross-encoder not available: {e}. Using RRF scores only.")
-                self._model = "unavailable"
-        return self._model
+                request_body = {
+                    "model": settings.rerank_model,
+                    "query": query[:2048],
+                    "documents": [item.content[:6000] for item in results],
+                    "top_n": len(results),
+                    "return_documents": False,
+                }
+                endpoint = settings.rerank_base_url.rstrip("/") + "/rerank"
+                async with httpx.AsyncClient(timeout=settings.rerank_timeout_seconds) as client:
+                    response = await client.post(
+                        endpoint,
+                        json=request_body,
+                        headers={"Authorization": f"Bearer {api_key}"},
+                    )
+                    response.raise_for_status()
+                    payload = response.json()
+                ranked = []
+                seen = set()
+                for item in payload.get("results", []):
+                    index = item.get("index")
+                    score = item.get("relevance_score")
+                    if not isinstance(index, int) or not 0 <= index < len(results):
+                        raise ValueError("invalid_rerank_index")
+                    if not isinstance(score, (int, float)):
+                        raise ValueError("invalid_rerank_score")
+                    if index in seen:
+                        raise ValueError("duplicate_rerank_index")
+                    seen.add(index)
+                    result = results[index]
+                    result.rerank_score = float(score)
+                    ranked.append(result)
+                if len(ranked) != len(results):
+                    raise ValueError("incomplete_rerank_results")
+                results = ranked
+            except Exception as exc:
+                # Do not log request content or credentials.
+                fallback_reason = f"remote_rerank_error:{type(exc).__name__}"
+                logger.warning("Remote rerank failed; retaining RRF order (%s)", type(exc).__name__)
 
-    def rerank(self, query: str, results: list[RetrievalResult]) -> list[RetrievalResult]:
-        model = self._get_model()
-        if model == "unavailable" or not results:
-            return results
-
-        pairs = [[query, r.content] for r in results]
-        try:
-            scores = model.predict(pairs)
-            for result, score in zip(results, scores):
-                result.rerank_score = float(score)
-            results.sort(
-                key=lambda x: (
-                    x.rerank_score if x.rerank_score is not None else float("-inf")
-                ),
-                reverse=True,
-            )
-        except Exception as e:
-            logger.warning(f"Rerank failed: {e}")
-
-        return results
+        latency_ms = (time.perf_counter() - started) * 1000
+        for result in results:
+            result.rerank_provider = self.provider
+            result.rerank_model = self.model
+            result.rerank_fallback_reason = fallback_reason
+            result.rerank_latency_ms = latency_ms
+        return results, fallback_reason, latency_ms
 
 
-_reranker = CrossEncoderReranker()
+_reranker = RemoteReranker()
 
 
 # ── 主检索接口 ────────────────────────────────────────────────────────────────
@@ -511,20 +555,25 @@ async def hybrid_retrieve(
         merged = reciprocal_rank_fusion(vec_results, fts_results)
         fusion_span.set_attribute("omni.retrieval.fused_count", len(merged))
 
-    # Cross-Encoder 精排
+    # Remote cross-encoder 精排; retain deterministic RRF order on failure.
     if rerank and merged:
         before_count = len(merged[: top_k * 2])
         with traced_span(
-            "rag.rerank.cross",
+            "rag.rerank.remote",
             kind="RERANKER",
             attributes={
-                "reranker.model_name": _reranker._model_name,
+                "reranker.provider": _reranker.provider,
+                "reranker.model_name": _reranker.model,
                 "omni.rerank.input_count": before_count,
             },
         ) as rerank_span:
-            merged = _reranker.rerank(ranking_query, merged[: top_k * 2])
+            merged, fallback_reason, latency_ms = await _reranker.rerank(
+                ranking_query, merged[: top_k * 2]
+            )
             rerank_span.set_attribute("omni.rerank.output_count", len(merged))
             rerank_span.set_attribute("omni.rerank.dropped_count", before_count - len(merged))
+            rerank_span.set_attribute("omni.rerank.fallback_reason", fallback_reason or "")
+            rerank_span.set_attribute("omni.rerank.latency_ms", latency_ms)
 
     # 取 top_k + 最低分过滤
     results = merged[:top_k]

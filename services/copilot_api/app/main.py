@@ -23,6 +23,8 @@ from app.models import (
     KpiQuery,
     LoginRequest,
     MessageCreate,
+    SolutionCardCreate,
+    SolutionCardResponse,
     TicketActionCreate,
 )
 from app.security import (
@@ -64,6 +66,7 @@ async def _verify_product_schema() -> None:
             "app_user",
             "support_conversation",
             "support_message",
+            "support_solution_card",
             "copilot_feedback",
             "product_audit_event",
             "hitl_approval_request",
@@ -360,6 +363,132 @@ async def get_case(ticket_id: str, principal: Principal = Depends(current_princi
     }
 
 
+@app.post(
+    "/api/v1/cases/{ticket_id}/solution-card",
+    response_model=SolutionCardResponse,
+)
+async def create_solution_card(
+    ticket_id: str,
+    payload: SolutionCardCreate,
+    request: Request,
+    principal: Principal = Depends(current_principal),
+) -> SolutionCardResponse:
+    """Generate and persist an advisory card; never execute the proposed action."""
+
+    case = await _case_row(ticket_id, principal)
+    started = time.perf_counter()
+    rag_payload = {
+        "question": payload.question,
+        "tenant_id": principal.tenant_id,
+        "product_line": case["product_line_text"],
+        "actor_role": principal.role,
+        "visibility_scope": "internal",
+        "top_k": 5,
+        "retrieval_mode": payload.retrieval_mode,
+        "include_debug": False,
+    }
+    with traced_span(
+        "product.solution_card",
+        kind="CHAIN",
+        attributes={
+            "omni.ticket_id": ticket_id,
+            "omni.tenant_id": principal.tenant_id,
+            "omni.actor.role": principal.role,
+        },
+    ):
+        try:
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                response = await client.post(
+                    f"{settings.rag_api_url}/rag/solution-card",
+                    json=rag_payload,
+                    headers={
+                        "X-Service-Token": settings.internal_service_token,
+                        "X-Actor-ID": principal.user_id,
+                        "X-Actor-Role": principal.role,
+                        "X-Tenant-ID": principal.tenant_id,
+                        "X-Request-ID": request.state.request_id,
+                    },
+                )
+                response.raise_for_status()
+                card = SolutionCardResponse.model_validate(response.json())
+        except (httpx.HTTPError, ValueError) as exc:
+            await _audit(
+                principal,
+                event_type="solution_card.generate",
+                resource_type="ticket",
+                resource_id=ticket_id,
+                outcome="dependency_failed",
+                request_id=request.state.request_id,
+                details={"dependency": "rag_api", "error_type": type(exc).__name__},
+            )
+            raise HTTPException(status_code=502, detail="rag_api_unavailable") from exc
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    card_id = f"card_{uuid.uuid4().hex}"
+    card_body = card.model_dump(mode="json")
+    async with acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO support_solution_card (
+                card_id, tenant_id, ticket_id, actor_id, question, card,
+                evidence_ids, trace_id, release_id, latency_ms
+            ) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10)
+            """,
+            card_id,
+            principal.tenant_id,
+            ticket_id,
+            principal.user_id,
+            payload.question,
+            card_body,
+            [item.evidence_id for item in card.citations],
+            card.trace_id,
+            card.release_id,
+            latency_ms,
+        )
+    await _audit(
+        principal,
+        event_type="solution_card.generate",
+        resource_type="solution_card",
+        resource_id=card_id,
+        outcome="abstained" if card.abstain_reason else "success",
+        request_id=request.state.request_id,
+        trace_id=card.trace_id,
+        details={
+            "ticket_id": ticket_id,
+            "evidence_count": len(card.citations),
+            "needs_clarification": card.needs_clarification,
+            "proposed_operation": card.proposed_action.operation,
+            "proposed_control": card.proposed_action.control,
+            "latency_ms": latency_ms,
+        },
+    )
+    return card
+
+
+@app.get(
+    "/api/v1/cases/{ticket_id}/solution-cards/latest",
+    response_model=SolutionCardResponse,
+)
+async def latest_solution_card(
+    ticket_id: str,
+    principal: Principal = Depends(current_principal),
+) -> SolutionCardResponse:
+    await _case_row(ticket_id, principal)
+    async with acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT card FROM support_solution_card
+            WHERE tenant_id = $1 AND ticket_id = $2
+            ORDER BY created_at DESC LIMIT 1
+            """,
+            principal.tenant_id,
+            ticket_id,
+        )
+    if row is None:
+        raise HTTPException(status_code=404, detail="solution_card_not_found")
+    return SolutionCardResponse.model_validate(row["card"])
+
+
 @app.post("/api/v1/cases/{ticket_id}/conversations", status_code=201)
 async def create_conversation(
     ticket_id: str,
@@ -605,15 +734,22 @@ async def _validate_action_evidence(
     async with acquire() as conn:
         rows = await conn.fetch(
             """
+            WITH linked_evidence AS (
+                SELECT unnest(message.evidence_ids) AS evidence_id
+                FROM support_message message
+                JOIN support_conversation conversation
+                  ON conversation.conversation_id = message.conversation_id
+                 AND conversation.tenant_id = message.tenant_id
+                WHERE conversation.ticket_id = $1
+                  AND conversation.tenant_id = $2
+                UNION ALL
+                SELECT unnest(card.evidence_ids) AS evidence_id
+                FROM support_solution_card card
+                WHERE card.ticket_id = $1 AND card.tenant_id = $2
+            )
             SELECT DISTINCT evidence_id
-            FROM support_message message
-            JOIN support_conversation conversation
-              ON conversation.conversation_id = message.conversation_id
-             AND conversation.tenant_id = message.tenant_id
-            CROSS JOIN LATERAL unnest(message.evidence_ids) AS evidence_id
-            WHERE conversation.ticket_id = $1
-              AND conversation.tenant_id = $2
-              AND evidence_id = ANY($3::text[])
+            FROM linked_evidence
+            WHERE evidence_id = ANY($3::text[])
             """,
             ticket_id,
             principal.tenant_id,

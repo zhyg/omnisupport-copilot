@@ -1,0 +1,43 @@
+{
+  "status": "pass",
+  "baseline": {
+    "run_id": "316bf6f00687",
+    "report": "reports/capstone/e2e-baseline.json",
+    "generation_mode": "deterministic_fallback",
+    "solution_card_trace_id": "ae457e45a999dd047b81f0a999c14318"
+  },
+  "candidate": {
+    "run_id": "2359380a9d44",
+    "report": "reports/capstone/e2e-candidate.json",
+    "release_id": "capstone-webhook-v2.0.0",
+    "generation_mode": "llm",
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-27B",
+    "solution_card_trace_id": "b0f075f1f659afee69410f85933857a2",
+    "phoenix_solution_card_span_count": 20
+  },
+  "model_fault": {
+    "run_id": "16fa68fde473",
+    "report": "reports/capstone/e2e-model-fault.json",
+    "status": "pass",
+    "generation_mode": "deterministic_fallback",
+    "rag_trace_id": "1b2f557f2d092425f8f15e7fa6ff3552"
+  },
+  "post_rollback": {
+    "run_id": "412ecc4e19c5",
+    "report": "reports/capstone/e2e-post-rollback.json",
+    "status": "pass",
+    "active_release_id": "omni-dev-v2026.08.23-001",
+    "solution_card_trace_id": "49123bea693a78411ae0703e7ab813a9"
+  },
+  "golden_set": {
+    "report": "reports/capstone/solution-card-eval-candidate.json",
+    "cases": 8,
+    "passed": 8,
+    "key_point_pass_rate": 1.0,
+    "citation_support_proxy_rate": 1.0,
+    "unsafe_action_bypass_count": 0,
+    "latency_p50_ms": 9157.15,
+    "latency_p95_ms": 13878.01
+  }
+}

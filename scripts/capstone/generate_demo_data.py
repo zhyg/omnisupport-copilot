@@ -166,7 +166,12 @@ def generate_tickets(
 
 def generate_manifests(*, root: Path, output_dir: Path) -> list[Path]:
     grouped = {
-        "northstar_workspace": ["workspace-admin-recovery.html", "workspace-api-webhook.html"],
+        "northstar_workspace": [
+            "workspace-admin-recovery.html",
+            "workspace-api-webhook.html",
+            "assignment:webhook-signature-rotation.html",
+            "assignment:webhook-retry-idempotency.html",
+        ],
         "northstar_edge_gateway": ["edge-gateway-tls-recovery.html"],
         "northstar_studio": ["studio-job-recovery.html"],
         "cross_product": ["support-credit-policy.html", "security-support-boundary.html"],
@@ -176,7 +181,17 @@ def generate_manifests(*, root: Path, output_dir: Path) -> list[Path]:
     for product_line, names in grouped.items():
         assets = []
         for name in names:
-            path = root / "data" / "capstone" / "knowledge" / name
+            if name.startswith("assignment:"):
+                path = (
+                    root
+                    / "assignments"
+                    / "final_capstone"
+                    / "yangong"
+                    / "data"
+                    / name.removeprefix("assignment:")
+                )
+            else:
+                path = root / "data" / "capstone" / "knowledge" / name
             raw = path.read_bytes()
             assets.append(
                 {

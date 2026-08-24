@@ -22,6 +22,35 @@ class MessageCreate(BaseModel):
     include_debug: bool = False
 
 
+class SolutionCardCreate(BaseModel):
+    question: str = Field(min_length=2, max_length=2048)
+    retrieval_mode: Literal[
+        "hybrid", "auto", "graph_local", "graph_global", "graph_multihop", "graph_drift"
+    ] = "hybrid"
+
+
+class SolutionCardCitation(BaseModel):
+    evidence_id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+
+
+class ProposedAction(BaseModel):
+    operation: Literal["none", "add_internal_note", "grant_service_credit"]
+    control: Literal["none", "confirm", "hitl"]
+
+
+class SolutionCardResponse(BaseModel):
+    summary: str = Field(min_length=1, max_length=2000)
+    steps: list[str] = Field(max_length=3)
+    citations: list[SolutionCardCitation]
+    confidence: float = Field(ge=0.0, le=1.0)
+    needs_clarification: bool
+    abstain_reason: str | None
+    proposed_action: ProposedAction
+    release_id: str = Field(min_length=1)
+    trace_id: str = Field(min_length=1)
+
+
 class FeedbackCreate(BaseModel):
     rating: Literal[-1, 1]
     reason_code: str | None = Field(default=None, max_length=80)

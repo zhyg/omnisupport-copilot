@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>Webhook 重试、幂等与版本回滚</title></head>
+<body><article>
+<h1>Northstar Workspace Webhook 重试、幂等与版本回滚</h1>
+<p>文档版本 1.0，适用于 Workspace 3.2–4.2。内部错误码 WS-WEBHOOK-005 和 WS-WEBHOOK-409；本文档仅包含课程合成数据。</p>
+<h2>诊断</h2>
+<p>HTTP 429 或 5xx 会触发指数退避重试；HTTP 409 通常表示消费者已处理相同 event_id，或者幂等记录与当前载荷摘要冲突。HTTP 2xx 才表示本次投递完成。</p>
+<h2>处理步骤</h2>
+<ol>
+<li>按 event_id 查询消费者幂等表，同时比较 payload_digest；相同摘要返回既有成功结果，不重复产生业务副作用。</li>
+<li>若 event_id 相同但摘要不同，停止重放并标记 WS-WEBHOOK-409，由支持负责人核查来源和版本，不覆盖原幂等记录。</li>
+<li>升级事件版本前先在影子端点验证兼容性；回滚时恢复上一订阅版本和 endpoint 配置，只重放一条失败事件进行验证。</li>
+</ol>
+<h2>控制边界</h2>
+<p>单条失败投递可以在用户确认后重放。批量重放、端点所有权变更和跨版本回放需要人工审批。任何重试都必须沿用 event_id 并写入审计。</p>
+<h2>成功标准</h2>
+<p>重复投递只产生一次业务事件，冲突不会覆盖原记录，版本回滚后单条验证投递返回 2xx。</p>
+</article></body></html>

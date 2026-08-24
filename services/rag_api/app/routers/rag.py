@@ -22,6 +22,8 @@ from app.models.rag_models import (
     RetrievalContext,
     RetrievalDebugItem,
     RetrievalDebugPayload,
+    SolutionCardRequest,
+    SolutionCardResponse,
 )
 from app.query_rewrite import query_rewrite_service
 from app.routers.query import _get_pool
@@ -31,8 +33,46 @@ from services.graph.models import RouteDecision
 from services.graph.retrieval import GraphRetriever
 from services.graph.serialize import serialize_graph_context
 from services.graph.store import AsyncPostgresGraphStore
+from app.solution_card import build_solution_card
+from pipelines.query.rewriter import extract_protected_terms
 
 router = APIRouter(tags=["week08-rag"])
+
+
+@router.post(
+    "/rag/solution-card",
+    response_model=SolutionCardResponse,
+    summary="Final Capstone governed solution card",
+)
+async def solution_card(
+    payload: SolutionCardRequest,
+    http_request: Request,
+    principal: InternalPrincipal = Depends(require_internal_request),
+) -> SolutionCardResponse:
+    """Reuse the production RAG chain, then constrain output to the card schema."""
+
+    with traced_span(
+        "rag.solution_card",
+        kind="CHAIN",
+        attributes={
+            "omni.solution_card.version": "solution-card-v1",
+            "omni.release_id": settings.release_id,
+        },
+    ) as span:
+        answer = await rag_answer(payload, http_request, principal)
+        card, generation = await build_solution_card(payload.question, answer)
+        span.set_attribute("omni.solution_card.step_count", len(card.steps))
+        span.set_attribute("omni.solution_card.evidence_count", len(card.citations))
+        span.set_attribute("omni.solution_card.needs_clarification", card.needs_clarification)
+        span.set_attribute("omni.solution_card.abstain_reason", card.abstain_reason or "")
+        span.set_attribute("omni.solution_card.generation_mode", str(generation["mode"]))
+        span.set_attribute("llm.provider", str(generation["provider"]))
+        span.set_attribute("llm.model_name", str(generation["model"]))
+        if generation.get("fallback_reason"):
+            span.set_attribute(
+                "omni.solution_card.fallback_reason", str(generation["fallback_reason"])
+            )
+        return card
 
 
 @router.post("/rag/answer", response_model=RagAnswerResponse, summary="Week8 RAG answer")
@@ -269,6 +309,19 @@ async def rag_answer(
             max_chunks=5,
             token_budget=2500,
         ).chunks
+        protected_terms = extract_protected_terms(payload.question)
+        evidence_text = "\n".join(chunk.content for chunk in generation_chunks).casefold()
+        unsupported_terms = [
+            term for term in protected_terms if term.casefold() not in evidence_text
+        ]
+        if unsupported_terms:
+            # Semantic similarity is not proof that an exact code/version is
+            # covered. Drop unrelated evidence before generation so an unknown
+            # identifier becomes a safe no-answer instead of a plausible guess.
+            generation_chunks = []
+            root_span.set_attribute(
+                "omni.retrieval.unsupported_identifier_count", len(unsupported_terms)
+            )
         citations = [_citation_from_chunk(chunk) for chunk in generation_chunks]
         selected_evidence_ids = {chunk.evidence_id for chunk in generation_chunks}
         graph_context = None
@@ -442,6 +495,7 @@ def _debug_payload(chunks, filters: dict, *, mode: str) -> RetrievalDebugPayload
     debug_mode = mode if mode.startswith("graph_") else (
         "hybrid_rrf_rerank" if has_rerank else "hybrid_rrf"
     )
+    rerank_item = chunks[0] if chunks else None
     return RetrievalDebugPayload(
         mode=cast(
             Literal[
@@ -459,6 +513,12 @@ def _debug_payload(chunks, filters: dict, *, mode: str) -> RetrievalDebugPayload
         rrf_k=60,
         rerank_enabled=settings.rerank_enabled,
         rerank_fallback=settings.rerank_enabled and not has_rerank,
+        rerank_provider=rerank_item.rerank_provider if rerank_item else "none",
+        rerank_model=rerank_item.rerank_model if rerank_item else "none",
+        rerank_fallback_reason=(
+            rerank_item.rerank_fallback_reason if rerank_item else "no_candidates"
+        ),
+        rerank_latency_ms=rerank_item.rerank_latency_ms if rerank_item else 0.0,
         filters_applied={key: value for key, value in filters.items() if value is not None},
         results=[
             RetrievalDebugItem(

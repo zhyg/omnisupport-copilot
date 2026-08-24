@@ -137,6 +137,10 @@ class RetrievalDebugPayload(BaseModel):
     rrf_k: int = 60
     rerank_enabled: bool = False
     rerank_fallback: bool = False
+    rerank_provider: str = "none"
+    rerank_model: str = "none"
+    rerank_fallback_reason: Optional[str] = None
+    rerank_latency_ms: float = Field(default=0.0, ge=0.0)
     filters_applied: dict
     results: List[RetrievalDebugItem]
 
@@ -217,3 +221,31 @@ class RagAnswerResponse(BaseModel):
     retrieval_debug: Optional[RetrievalDebugPayload] = None
     graph_debug: Optional[GraphRetrievalDebug] = None
     query_rewrite_debug: Optional[QueryRewriteDebug] = None
+
+
+# ── Final Capstone structured solution card ─────────────────────────────────
+
+class SolutionCardCitation(BaseModel):
+    evidence_id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+
+
+class ProposedAction(BaseModel):
+    operation: Literal["none", "add_internal_note", "grant_service_credit"]
+    control: Literal["none", "confirm", "hitl"]
+
+
+class SolutionCardRequest(RagAnswerRequest):
+    """Generate a governed problem-resolution card from retrieved evidence."""
+
+
+class SolutionCardResponse(BaseModel):
+    summary: str = Field(min_length=1, max_length=2000)
+    steps: List[str] = Field(max_length=3)
+    citations: List[SolutionCardCitation]
+    confidence: float = Field(ge=0.0, le=1.0)
+    needs_clarification: bool
+    abstain_reason: Optional[str]
+    proposed_action: ProposedAction
+    release_id: str = Field(min_length=1)
+    trace_id: str = Field(min_length=1)

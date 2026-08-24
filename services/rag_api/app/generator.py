@@ -262,7 +262,7 @@ async def generate_grounded_answer(
             graph_context=graph_context,
             retrieval_mode=retrieval_mode,
         )
-        structured = runtime.provider in {"ollama", "openai"}
+        structured = runtime.provider in {"ollama", "openai", "siliconflow"}
         response = await complete(
             system_prompt=system_prompt,
             user_prompt=user_prompt,

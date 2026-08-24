@@ -82,7 +82,7 @@ def test_capstone_bootstrap_reconciles_operational_and_knowledge_snapshots():
 
     annotations = json.loads((ROOT / "data/capstone/graph_annotations_v1.json").read_text())
     assert annotations["review_status"] == "approved"
-    assert len(annotations["sources"]) == 10
+    assert len(annotations["sources"]) == 12
 
 
 def test_multimodal_raw_assets_are_routed_to_modality_buckets():

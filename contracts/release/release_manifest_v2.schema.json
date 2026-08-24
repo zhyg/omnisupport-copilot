@@ -38,7 +38,8 @@
             "prompt": {"$ref": "#/$defs/promptComponent"},
             "model": {"$ref": "#/$defs/modelComponent"},
             "skills": {"$ref": "#/$defs/skillsComponent"},
-            "graph": {"$ref": "#/$defs/graphComponent"}
+            "graph": {"$ref": "#/$defs/graphComponent"},
+            "service": {"$ref": "#/$defs/serviceComponent"}
           }
         },
         "quality": {
@@ -146,6 +147,10 @@
         "model_id": {"type": "string", "minLength": 1},
         "snapshot": {"type": "string", "minLength": 1},
         "system_card": {"type": "string", "minLength": 1},
+        "models": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
         "artifact_digests": {"$ref": "#/$defs/artifactDigests"}
       }
     },
@@ -164,6 +169,20 @@
       "properties": {
         "release_id": {"type": "string", "minLength": 1},
         "schema_version": {"type": "string", "minLength": 1},
+        "artifact_digests": {"$ref": "#/$defs/artifactDigests"}
+      }
+    },
+    "serviceComponent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["release_id", "components", "artifact_digests"],
+      "properties": {
+        "release_id": {"type": "string", "minLength": 1},
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
         "artifact_digests": {"$ref": "#/$defs/artifactDigests"}
       }
     },

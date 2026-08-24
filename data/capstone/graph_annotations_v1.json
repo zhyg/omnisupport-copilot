@@ -34,6 +34,38 @@
         {"type": "APPLIES_TO_VERSION", "source_type": "RESOLUTION", "source": "Verify endpoint and replay one idempotent delivery", "target_type": "VERSION", "target": "3.2"}
       ]
     },
+    "doc:capstone:webhook-signature-rotation": {
+      "product_line": "northstar_workspace",
+      "entities": [
+        {"type": "PRODUCT", "name": "Northstar Workspace"},
+        {"type": "ISSUE", "name": "Webhook signature verification failure"},
+        {"type": "SYMPTOM", "name": "HTTP 401 for WS-WEBHOOK-401"},
+        {"type": "RESOLUTION", "name": "Verify raw-body HMAC and rotate with dual secrets"},
+        {"type": "VERSION", "name": "4.2"}
+      ],
+      "relations": [
+        {"type": "HAS_ISSUE", "source_type": "PRODUCT", "source": "Northstar Workspace", "target_type": "ISSUE", "target": "Webhook signature verification failure"},
+        {"type": "HAS_SYMPTOM", "source_type": "ISSUE", "source": "Webhook signature verification failure", "target_type": "SYMPTOM", "target": "HTTP 401 for WS-WEBHOOK-401"},
+        {"type": "RESOLVED_BY", "source_type": "ISSUE", "source": "Webhook signature verification failure", "target_type": "RESOLUTION", "target": "Verify raw-body HMAC and rotate with dual secrets"},
+        {"type": "APPLIES_TO_VERSION", "source_type": "RESOLUTION", "source": "Verify raw-body HMAC and rotate with dual secrets", "target_type": "VERSION", "target": "4.2"}
+      ]
+    },
+    "doc:capstone:webhook-retry-idempotency": {
+      "product_line": "northstar_workspace",
+      "entities": [
+        {"type": "PRODUCT", "name": "Northstar Workspace"},
+        {"type": "ISSUE", "name": "Webhook retry idempotency conflict"},
+        {"type": "SYMPTOM", "name": "HTTP 409 for WS-WEBHOOK-409"},
+        {"type": "RESOLUTION", "name": "Compare event id and payload digest before single replay"},
+        {"type": "VERSION", "name": "3.2"}
+      ],
+      "relations": [
+        {"type": "HAS_ISSUE", "source_type": "PRODUCT", "source": "Northstar Workspace", "target_type": "ISSUE", "target": "Webhook retry idempotency conflict"},
+        {"type": "HAS_SYMPTOM", "source_type": "ISSUE", "source": "Webhook retry idempotency conflict", "target_type": "SYMPTOM", "target": "HTTP 409 for WS-WEBHOOK-409"},
+        {"type": "RESOLVED_BY", "source_type": "ISSUE", "source": "Webhook retry idempotency conflict", "target_type": "RESOLUTION", "target": "Compare event id and payload digest before single replay"},
+        {"type": "APPLIES_TO_VERSION", "source_type": "RESOLUTION", "source": "Compare event id and payload digest before single replay", "target_type": "VERSION", "target": "3.2"}
+      ]
+    },
     "doc:capstone:edge-gateway-tls-recovery": {
       "product_line": "northstar_edge_gateway",
       "entities": [

@@ -5,6 +5,7 @@ const state = {
   activeCase: null,
   conversationId: null,
   citations: new Map(),
+  solutionCard: null,
   actionIdempotencyKey: null,
 };
 
@@ -139,14 +140,70 @@ async function openCase(ticketId) {
   $("#case-comments").innerHTML = result.comments.length ? result.comments.map((item) => `
     <div class="timeline-item"><header><strong>${escapeHtml(item.author_role || "system")}</strong><time>${shortDate(item.created_at)}</time></header><p>${escapeHtml(item.body)}</p></div>`).join("") : `<p class="form-error">No comments yet.</p>`;
   if (state.conversationId) await loadMessages(); else resetChat();
+  await loadLatestSolutionCard();
   loadCases();
 }
 
 function resetChat() {
   state.citations.clear();
+  state.solutionCard = null;
+  $("#solution-card").classList.add("hidden");
   $("#chat").innerHTML = `<div class="chat-empty"><div class="orb"></div><h3>Ask from the case.</h3><p>答案只基于已发布证据。没有足够证据时，系统会明确拒答。</p><div class="suggestions"><button>如何恢复 Workspace 管理员访问？</button><button>这个错误码的排查顺序是什么？</button><button>汇总跨文档的恢复策略。</button></div></div>`;
   bindSuggestions();
 }
+
+function renderSolutionCard(card) {
+  state.solutionCard = card;
+  state.citations.clear();
+  card.citations.forEach((citation) => state.citations.set(citation.evidence_id, citation));
+  const action = card.proposed_action || { operation: "none", control: "none" };
+  const status = card.abstain_reason
+    ? `<span class="card-status abstain">${escapeHtml(card.abstain_reason)}</span>`
+    : card.needs_clarification
+      ? `<span class="card-status clarify">needs clarification</span>`
+      : `<span class="card-status grounded">grounded</span>`;
+  const node = $("#solution-card");
+  node.innerHTML = `<header><div><p class="eyebrow">问题处理方案卡</p><h4>${escapeHtml(card.summary)}</h4></div>${status}</header>
+    ${card.steps.length ? `<ol>${card.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>` : ""}
+    <div class="evidence-buttons">${card.citations.map((citation, index) => `<button data-card-evidence="${escapeHtml(citation.evidence_id)}">Source ${index + 1} · ${escapeHtml(citation.source)}</button>`).join("")}</div>
+    <footer><span>confidence ${Number(card.confidence).toFixed(2)}</span><code>${escapeHtml(card.release_id)}</code><code>${escapeHtml(card.trace_id.slice(0, 16))}</code>
+    ${action.operation !== "none" ? `<button class="primary" data-card-action="${action.operation}">${action.control === "hitl" ? "申请 HITL" : "确认写入备注"}</button>` : ""}</footer>`;
+  node.classList.remove("hidden");
+  $$(`[data-card-evidence]`).forEach((button) => button.addEventListener("click", () => showEvidence(button.dataset.cardEvidence)));
+  $$(`[data-card-action]`).forEach((button) => button.addEventListener("click", () => openActionDialog(button.dataset.cardAction, card.summary)));
+}
+
+async function loadLatestSolutionCard() {
+  $("#solution-card").classList.add("hidden");
+  if (!state.activeCase) return;
+  try {
+    const card = await api(`/api/v1/cases/${state.activeCase.ticket_id}/solution-cards/latest`);
+    renderSolutionCard(card);
+  } catch (error) {
+    if (!error.message.includes("solution_card_not_found")) toast(error.message, true);
+  }
+}
+
+$("#generate-card").addEventListener("click", async () => {
+  if (!state.activeCase) return toast("Select a case first.", true);
+  const question = $("#question").value.trim();
+  if (!question) return toast("Describe the Webhook problem first.", true);
+  const button = $("#generate-card");
+  button.disabled = true;
+  button.textContent = "生成中…";
+  try {
+    const card = await api(`/api/v1/cases/${state.activeCase.ticket_id}/solution-card`, {
+      method: "POST",
+      body: JSON.stringify({ question, retrieval_mode: $("#retrieval-mode").value }),
+    });
+    renderSolutionCard(card);
+  } catch (error) {
+    toast(`Solution card failed: ${error.message}`, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "生成方案卡";
+  }
+});
 
 function bindSuggestions() {
   $$(".suggestions button").forEach((button) => button.addEventListener("click", () => {
@@ -210,22 +267,25 @@ async function sendFeedback(messageId, rating) {
 function showEvidence(evidenceId) {
   const item = state.citations.get(evidenceId);
   if (!item) return;
-  $("#evidence-content").innerHTML = `<div class="evidence-body"><blockquote>${escapeHtml(item.quote || "No preview available")}</blockquote><dl class="evidence-grid">
-    <dt>Evidence ID</dt><dd><code>${escapeHtml(item.evidence_id)}</code></dd><dt>Document</dt><dd>${escapeHtml(item.title || item.doc_id)}</dd><dt>Section</dt><dd>${escapeHtml(item.section_path || "—")}</dd><dt>Page</dt><dd>${item.page_no || "—"}</dd><dt>Source</dt><dd>${escapeHtml(item.source_url || item.source_id)}</dd><dt>Score</dt><dd>${Number(item.score || 0).toFixed(4)}</dd></dl></div>`;
+  $("#evidence-content").innerHTML = `<div class="evidence-body"><blockquote>${escapeHtml(item.quote || "Evidence is bound to this solution card; inspect the source below.")}</blockquote><dl class="evidence-grid">
+    <dt>Evidence ID</dt><dd><code>${escapeHtml(item.evidence_id)}</code></dd><dt>Document</dt><dd>${escapeHtml(item.title || item.doc_id || "—")}</dd><dt>Section</dt><dd>${escapeHtml(item.section_path || "—")}</dd><dt>Page</dt><dd>${item.page_no || "—"}</dd><dt>Source</dt><dd>${escapeHtml(item.source_url || item.source_id || item.source)}</dd><dt>Score</dt><dd>${Number(item.score || 0).toFixed(4)}</dd></dl></div>`;
   $("#evidence-drawer").classList.remove("hidden");
 }
 
 $("#close-drawer").addEventListener("click", () => $("#evidence-drawer").classList.add("hidden"));
 
-$$(".action-trigger").forEach((button) => button.addEventListener("click", () => {
-  const operation = button.dataset.operation;
+function openActionDialog(operation, suggestedReason = "") {
   $("#action-operation").value = operation;
   state.actionIdempotencyKey = `ui-${operation}-${state.activeCase.ticket_id}-${crypto.randomUUID()}`;
   $("#action-title").textContent = operation.replaceAll("_", " ");
   $("#action-status-field").classList.toggle("hidden", operation !== "update_status");
   $("#action-amount-field").classList.toggle("hidden", operation !== "grant_service_credit");
-  $("#action-reason").value = "";
+  $("#action-reason").value = suggestedReason;
   $("#action-dialog").showModal();
+}
+
+$$(".action-trigger").forEach((button) => button.addEventListener("click", () => {
+  openActionDialog(button.dataset.operation);
 }));
 
 $("#action-form").addEventListener("submit", async (event) => {

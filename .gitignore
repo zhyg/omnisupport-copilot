@@ -27,6 +27,8 @@ venv/
 !.env.example
 !infra/env/
 !infra/env/.env.example
+# Local model-provider reference may contain credentials.
+llm.txt
 
 # IDE
 .idea/
