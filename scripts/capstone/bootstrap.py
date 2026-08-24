@@ -511,7 +511,13 @@ async def release_stage() -> dict[str, Any]:
     return {"status": "active", "release_id": RELEASE_ID, "manifest_digest": digest}
 
 
-async def run(root: Path, stage: str, count: int) -> dict[str, Any]:
+async def run(
+    root: Path,
+    stage: str,
+    count: int,
+    output: Path | None = None,
+    register_release: bool = True,
+) -> dict[str, Any]:
     root = root.resolve()
     await apply_additive_migrations(root)
     generation = generate(root, count=count)
@@ -525,8 +531,14 @@ async def run(root: Path, stage: str, count: int) -> dict[str, Any]:
     if stage in {"all", "graph"}:
         summary["graph"] = await asyncio.to_thread(graph_stage, root)
     if stage in {"all", "release"}:
-        summary["release"] = await release_stage()
-    output = root / "reports" / "capstone" / f"bootstrap-{stage}.json"
+        summary["release"] = (
+            await release_stage()
+            if register_release
+            else {"status": "skipped", "reason": "evidence_replay"}
+        )
+    output = output or root / "reports" / "capstone" / f"bootstrap-{stage}.json"
+    if not output.is_absolute():
+        output = root / output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
     return summary
@@ -537,8 +549,26 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--stage", choices=["all", "ingest", "knowledge", "analytics", "graph", "release"], default="all")
     parser.add_argument("--ticket-count", type=int, default=int(os.environ.get("CAPSTONE_TICKET_COUNT", "240")))
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Independent report path; use distinct paths for first and replay runs.",
+    )
+    parser.add_argument(
+        "--skip-release-registration",
+        action="store_true",
+        help="Run data/index replay evidence without mutating the governed release registry.",
+    )
     args = parser.parse_args()
-    summary = asyncio.run(run(args.root, args.stage, args.ticket_count))
+    summary = asyncio.run(
+        run(
+            args.root,
+            args.stage,
+            args.ticket_count,
+            args.output,
+            register_release=not args.skip_release_registration,
+        )
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2, default=str))
 
 

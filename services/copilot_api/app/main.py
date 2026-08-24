@@ -682,6 +682,7 @@ async def ask_copilot(
         result["generation_fallback_reason"] = answer.get("generation_fallback_reason")
         result["retrieval_debug"] = answer.get("retrieval_debug")
         result["graph_debug"] = answer.get("graph_debug")
+        result["query_rewrite_debug"] = answer.get("query_rewrite_debug")
     return result
 
 

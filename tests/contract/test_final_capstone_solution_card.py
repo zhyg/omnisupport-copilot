@@ -10,16 +10,21 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "services/rag_api"))
 
-from app.models.rag_models import ProposedAction, SolutionCardResponse  # noqa: E402
 from app import retrieval  # noqa: E402
+from app.models.rag_models import ProposedAction, SolutionCardResponse  # noqa: E402
 from app.routers.rag import _debug_payload  # noqa: E402
 from app.solution_card import needs_clarification, proposed_action_for  # noqa: E402
+
 from pipelines.indexing.embedder import (  # noqa: E402
     _embedding_api_key,
     _embedding_base_url,
 )
 from pipelines.query.rewriter import extract_protected_terms  # noqa: E402
-from scripts.capstone.evaluate_solution_cards import _scenario_result  # noqa: E402
+from scripts.capstone.evaluate_solution_cards import (  # noqa: E402
+    _citations_supported,
+    _scenario_result,
+)
+from scripts.capstone.generate_demo_data import generate_manifests  # noqa: E402
 from services.graph.models import GraphEvidenceChunk  # noqa: E402
 
 
@@ -93,6 +98,24 @@ def test_synthetic_manifest_checksums_and_golden_set():
     assert all(item["expected_action"]["control"] in {"none", "confirm", "hitl"} for item in cases)
 
 
+def test_generated_manifest_preserves_assignment_language_and_version_metadata(tmp_path):
+    outputs = generate_manifests(root=ROOT, output_dir=tmp_path)
+    workspace = json.loads(
+        next(path for path in outputs if path.name == "manifest_northstar_workspace.json").read_text()
+    )
+    assignment_assets = {
+        item["source_id"]: item
+        for item in workspace["assets"]
+        if item["source_id"].startswith("doc:capstone:webhook-")
+    }
+    assert set(assignment_assets) == {
+        "doc:capstone:webhook-signature-rotation",
+        "doc:capstone:webhook-retry-idempotency",
+    }
+    assert all(item["language"] == "zh-CN" for item in assignment_assets.values())
+    assert all("文档版本 1.0" in item["notes"] for item in assignment_assets.values())
+
+
 def test_embedding_credentials_are_provider_scoped(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
     monkeypatch.setenv("SILICONFLOW_API_KEY", "siliconflow-secret")
@@ -149,6 +172,7 @@ def test_operational_cases_cannot_pass_without_scenario_setup():
         fault_report=None,
         rollback_report=None,
         rollback_manifest=None,
+        expected_release_id="candidate",
         expected_rollback_release_id=None,
     )["status"] == "not_run"
     assert _scenario_result(
@@ -156,6 +180,7 @@ def test_operational_cases_cannot_pass_without_scenario_setup():
         fault_report=None,
         rollback_report=None,
         rollback_manifest=None,
+        expected_release_id="candidate",
         expected_rollback_release_id=None,
     )["status"] == "not_run"
 
@@ -165,13 +190,20 @@ def test_operational_cases_validate_fault_and_real_rollback_evidence():
         "status": "pass",
         "scenario": "llm_fault",
         "checks": {
-            "runtime": {"status": "ok"},
+            "runtime": {"status": "ok", "release_id": "candidate"},
+            "release_pointer": {"release_id": "candidate"},
             "rag": {
                 "generation_mode": "deterministic_fallback",
                 "generation_fallback_reason": "llm_error:APITimeoutError",
                 "evidence_count": 5,
                 "trace_id": "trace-fault",
                 "release_id": "candidate",
+                "query_rewrite_debug": {
+                    "mode": "fallback",
+                    "fallback_reason": "llm_error:APITimeoutError",
+                    "lexical_term_count": 2,
+                    "protected_terms_preserved": True,
+                },
             },
         },
     }
@@ -203,6 +235,7 @@ def test_operational_cases_validate_fault_and_real_rollback_evidence():
         fault_report=fault,
         rollback_report=None,
         rollback_manifest=None,
+        expected_release_id="candidate",
         expected_rollback_release_id=None,
     )["status"] == "pass"
     assert _scenario_result(
@@ -221,8 +254,52 @@ def test_operational_cases_validate_fault_and_real_rollback_evidence():
                 }
             },
         },
+        expected_release_id="candidate",
         expected_rollback_release_id="baseline",
     )["status"] == "pass"
+
+
+def test_fault_scenario_rejects_cross_release_and_missing_rewrite_evidence():
+    report = {
+        "status": "pass",
+        "scenario": "llm_fault",
+        "checks": {
+            "runtime": {"status": "ok", "release_id": "old-release"},
+            "release_pointer": {"release_id": "old-release"},
+            "rag": {
+                "release_id": "old-release",
+                "generation_mode": "deterministic_fallback",
+                "generation_fallback_reason": "llm_error:APITimeoutError",
+                "evidence_count": 1,
+                "trace_id": "trace-old",
+            },
+        },
+    }
+    result = _scenario_result(
+        {"case_id": "C7", "fault_injection": "llm_timeout"},
+        fault_report=report,
+        rollback_report=None,
+        rollback_manifest=None,
+        expected_release_id="candidate",
+        expected_rollback_release_id=None,
+    )
+    assert result["status"] == "not_run"
+    assert result["checks"]["release"] is False
+    assert result["checks"]["rewrite_fallback"] is False
+
+
+def test_citation_support_rejects_extras_and_requires_empty_refusal_citations():
+    required = ["doc:capstone:webhook-signature-rotation"]
+    correct = [{"source": "/knowledge/webhook-signature-rotation.html"}]
+    unrelated = {"source": "/knowledge/unrelated.html"}
+    assert _citations_supported(correct, required_evidence=required)
+    assert not _citations_supported([*correct, unrelated], required_evidence=required)
+    assert not _citations_supported(
+        [{"source": "/knowledge/webhook-signature-rotation-evil.html"}],
+        required_evidence=required,
+    )
+    assert _citations_supported([], required_evidence=[])
+    assert not _citations_supported([unrelated], required_evidence=[])
 
 
 def test_model_bundle_and_solution_card_are_wired_without_secrets():
@@ -239,3 +316,5 @@ def test_model_bundle_and_solution_card_are_wired_without_secrets():
     assert "support_solution_card" in (
         ROOT / "infra/migrations/016_final_capstone_solution_card.sql"
     ).read_text()
+    product_api = (ROOT / "services/copilot_api/app/main.py").read_text()
+    assert 'result["query_rewrite_debug"] = answer.get("query_rewrite_debug")' in product_api

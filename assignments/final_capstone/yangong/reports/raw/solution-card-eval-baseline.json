@@ -1,0 +1,293 @@
+{
+  "status": "fail",
+  "dataset": "assignments/final_capstone/yangong/evals/golden_set.jsonl",
+  "expected_release_id": "omni-dev-v2026.08.24-001",
+  "environment": {
+    "runtime": {
+      "status": "ok",
+      "service": "copilot_api",
+      "release_id": "omni-dev-v2026.08.24-001",
+      "checks": {
+        "postgres": "ok",
+        "rag_api": "ok",
+        "tool_api": "ok"
+      }
+    },
+    "release_pointer": {
+      "release_id": "omni-dev-v2026.08.24-001",
+      "environment": "dev",
+      "status": "active",
+      "data_release_id": "data-capstone-v1",
+      "index_release_id": "index-capstone-v1",
+      "prompt_release_id": "prompt-capstone-v1",
+      "graph_release_id": "graph-capstone-prechange-v1",
+      "promoted_at": "2026-08-24T05:54:15.050948+00:00"
+    }
+  },
+  "case_count": 8,
+  "passed": 0,
+  "metrics": {
+    "key_point_pass_rate": 0.0,
+    "citation_support_proxy_rate": 0.0,
+    "unsafe_action_bypass_count": 0,
+    "latency_p50_ms": 9.83,
+    "latency_p95_ms": 17.17,
+    "average_output_characters": null,
+    "average_estimated_output_tokens_proxy": null
+  },
+  "cases": [
+    {
+      "case_id": "C1_grounded_webhook_401",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 10.69,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C2_identifier_preservation",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 9.83,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C3_ambiguous_context",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 17.17,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C4_no_evidence",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 8.77,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C5_internal_note_confirmation",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 8.7,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C6_credit_hitl",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 9.62,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C7_model_failure_fallback",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 12.25,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C8_release_rollback",
+      "status": "fail",
+      "checks": {
+        "release": true,
+        "identifiers": false,
+        "evidence": false,
+        "abstain": false,
+        "clarification": false,
+        "action": false,
+        "action_replay": false,
+        "contract": false,
+        "baseline_endpoint_disabled": true
+      },
+      "latency_ms": 11.0,
+      "http_status": 404,
+      "response": {
+        "detail": "solution_card_disabled"
+      },
+      "trace_id": null,
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": null,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    }
+  ],
+  "limitations": [
+    "C7/C8 only pass when their machine-readable scenario reports prove setup and outcome.",
+    "Every returned citation must belong to the case allow-list and every required source must appear; this remains a source-level proxy, not a claim-entailment judge.",
+    "Estimated output tokens use ceil(Unicode character count / 4) because the frozen product contract does not expose provider usage."
+  ]
+}

@@ -57,7 +57,7 @@ LLM 只生成 evidence-bounded answer。方案卡是该 answer 的确定性投�
 
 ## 可观测与隐私
 
-Product、RAG、rewrite、retrieve、generate、audit、HITL wait/resume 使用同一 W3C trace。`OTEL_CAPTURE_CONTENT=false`，Trace 记录 query hash/length、tenant、版本、模式、分数、耗时和 fallback_reason，不记录问题原文、客户 PII 或密钥。代表方案卡 trace `b0f075f1f659afee69410f85933857a2` 在 Phoenix 有 20 个 span。
+Product、RAG、rewrite、retrieve、generate、audit、HITL wait/resume 使用同一 W3C trace。`OTEL_CAPTURE_CONTENT=false`，Trace 记录 query hash/length、tenant、版本、模式、分数、耗时和 fallback_reason，不记录问题原文、客户 PII 或密钥。代表方案卡 trace `92d5a759c5a6e1d6d952b6c0deb84a51` 在 Phoenix 有 20 个 span。
 
 ## 发布取舍
 

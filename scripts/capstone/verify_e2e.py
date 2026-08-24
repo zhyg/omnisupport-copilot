@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import time
 import uuid
 from datetime import date, timedelta
@@ -17,6 +18,7 @@ from typing import Any
 import httpx
 
 from observability.week12.verify_phoenix import fetch_trace
+from pipelines.query.rewriter import extract_protected_terms
 
 
 def _check(condition: bool, message: str) -> None:
@@ -115,13 +117,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             f"/api/v1/cases/{case['ticket_id']}/conversations",
             json={"title": f"Capstone E2E {run_id}"},
         ).json()
+        answer_question = (
+            "Workspace 4.2 的 Webhook 返回 HTTP 401 和 WS-WEBHOOK-401，"
+            "在模型超时前后应如何排查？"
+        )
         answer_response = _request(
             client,
             agent_token,
             "POST",
             f"/api/v1/conversations/{conversation['conversation_id']}/messages",
             json={
-                "question": "What must happen before rotating a Workspace webhook signing secret?",
+                "question": answer_question,
                 "retrieval_mode": "hybrid",
                 "include_debug": True,
             },
@@ -136,9 +142,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "answer generation mode does not match the injected scenario",
             )
         _check(
-            any("workspace-api-webhook" in str(item.get("source_url", "")) for item in answer["citations"]),
-            "RAG did not retrieve the capstone webhook source",
+            any("webhook" in str(item.get("source_url", "")) for item in answer["citations"]),
+            "RAG did not retrieve a capstone webhook source",
         )
+        rewrite_debug = answer.get("query_rewrite_debug") or {}
+        expected_protected_terms = extract_protected_terms(answer_question)
+        protected_terms_preserved = (
+            rewrite_debug.get("lexical_term_count") == len(expected_protected_terms)
+            and "preserve_lexical_identifiers" in rewrite_debug.get("rewrite_reasons", [])
+            and not any(
+                str(value).startswith(("restored_missing:", "removed_invented:"))
+                for value in rewrite_debug.get("safety_repairs", [])
+            )
+        )
+        if args.scenario == "llm_fault":
+            _check(rewrite_debug.get("mode") == "fallback", "query rewrite did not fall back")
+            _check(bool(rewrite_debug.get("fallback_reason")), "query rewrite fallback reason missing")
+            _check(protected_terms_preserved, "query rewrite did not preserve protected identifiers")
+        answer_text = str(answer.get("content") or answer.get("answer") or "")
         report["checks"]["rag"] = {
             "message_id": answer["message_id"],
             "trace_id": answer["trace_id"],
@@ -149,6 +170,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "generation_provider": answer.get("generation_provider"),
             "generation_model": answer.get("generation_model"),
             "generation_fallback_reason": answer.get("generation_fallback_reason"),
+            "output_character_count": len(answer_text),
+            "estimated_output_tokens_proxy": math.ceil(len(answer_text) / 4),
+            "query_rewrite_debug": {
+                **rewrite_debug,
+                "expected_protected_term_count": len(expected_protected_terms),
+                "protected_terms_preserved": protected_terms_preserved,
+            },
         }
         card_path = f"/api/v1/cases/{case['ticket_id']}/solution-card"
         card_request = {
@@ -251,20 +279,53 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "policies": kpi["policy_applied"],
         }
 
+        note_reason = f"Capstone E2E evidence review completed ({run_id})."
+        note_key = f"capstone-e2e-note-{run_id}"
+        before_note = _request(
+            client, agent_token, "GET", f"/api/v1/cases/{case['ticket_id']}"
+        ).json()
+        note_payload = {
+            "operation": "add_internal_note",
+            "reason": note_reason,
+            "evidence_ids": answer["evidence_ids"],
+            "idempotency_key": note_key,
+        }
         note = _request(
             client,
             agent_token,
             "POST",
             f"/api/v1/cases/{case['ticket_id']}/actions",
-            json={
-                "operation": "add_internal_note",
-                "reason": f"Capstone E2E evidence review completed ({run_id}).",
-                "evidence_ids": answer["evidence_ids"],
-                "idempotency_key": f"capstone-e2e-note-{run_id}",
-            },
+            json=note_payload,
         ).json()
         _check(note["status"] == "completed", "low-risk ticket action did not complete")
-        report["checks"]["low_risk_action"] = note
+        note_replay = _request(
+            client,
+            agent_token,
+            "POST",
+            f"/api/v1/cases/{case['ticket_id']}/actions",
+            json=note_payload,
+        ).json()
+        after_note = _request(
+            client, agent_token, "GET", f"/api/v1/cases/{case['ticket_id']}"
+        ).json()
+        before_count = sum(item.get("body") == note_reason for item in before_note.get("comments", []))
+        after_count = sum(item.get("body") == note_reason for item in after_note.get("comments", []))
+        _check(note_replay["status"] == "cached", "idempotent action replay was not cached")
+        _check(
+            note_replay.get("lineage_event_id") == note.get("lineage_event_id"),
+            "idempotent replay created a second lineage event",
+        )
+        _check(
+            before_count == 0 and after_count == 1,
+            "idempotent replay duplicated the ticket timeline side effect",
+        )
+        report["checks"]["low_risk_action"] = {
+            "idempotency_key": note_key,
+            "first": note,
+            "replay": note_replay,
+            "timeline_before_count": before_count,
+            "timeline_after_count": after_count,
+        }
 
         credit_response = _request(
             client,

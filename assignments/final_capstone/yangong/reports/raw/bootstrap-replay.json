@@ -1,0 +1,163 @@
+{
+  "stage": "all",
+  "generation": {
+    "tickets_path": "/workspace/data/generated/capstone/tickets.jsonl",
+    "ticket_count": 240,
+    "manifest_paths": [
+      "/workspace/data/generated/capstone/manifests/manifest_northstar_workspace.json",
+      "/workspace/data/generated/capstone/manifests/manifest_northstar_edge_gateway.json",
+      "/workspace/data/generated/capstone/manifests/manifest_northstar_studio.json",
+      "/workspace/data/generated/capstone/manifests/manifest_cross_product.json"
+    ],
+    "generated_at": "2026-07-21T00:00:00+00:00",
+    "seed": 20260721
+  },
+  "ingest": {
+    "tickets": {
+      "total": 240,
+      "valid": 240,
+      "invalid": 0,
+      "processed": 240,
+      "inserted": 0,
+      "skipped": 240,
+      "errors": 0,
+      "bronze_inserted": 0,
+      "bronze_duplicates": 240,
+      "silver_upserted": 240,
+      "batch_id": "batch-capstone-v1",
+      "input": "/workspace/data/generated/capstone/tickets.jsonl",
+      "dry_run": false,
+      "state_path": "/workspace/data/generated/capstone/checkpoint.json",
+      "checkpoints_written": 1
+    },
+    "documents": [
+      {
+        "total": 4,
+        "uploaded": 0,
+        "skipped": 0,
+        "db_inserted": 4,
+        "errors": 0,
+        "batch_id": "batch-capstone-knowledge-v1",
+        "manifest_path": "/workspace/data/generated/capstone/manifests/manifest_northstar_workspace.json",
+        "dry_run": false
+      },
+      {
+        "total": 1,
+        "uploaded": 0,
+        "skipped": 0,
+        "db_inserted": 1,
+        "errors": 0,
+        "batch_id": "batch-capstone-knowledge-v1",
+        "manifest_path": "/workspace/data/generated/capstone/manifests/manifest_northstar_edge_gateway.json",
+        "dry_run": false
+      },
+      {
+        "total": 1,
+        "uploaded": 0,
+        "skipped": 0,
+        "db_inserted": 1,
+        "errors": 0,
+        "batch_id": "batch-capstone-knowledge-v1",
+        "manifest_path": "/workspace/data/generated/capstone/manifests/manifest_northstar_studio.json",
+        "dry_run": false
+      },
+      {
+        "total": 2,
+        "uploaded": 0,
+        "skipped": 0,
+        "db_inserted": 2,
+        "errors": 0,
+        "batch_id": "batch-capstone-knowledge-v1",
+        "manifest_path": "/workspace/data/generated/capstone/manifests/manifest_cross_product.json",
+        "dry_run": false
+      },
+      {
+        "total": 4,
+        "uploaded": 0,
+        "skipped": 0,
+        "db_inserted": 4,
+        "errors": 0,
+        "batch_id": "batch-capstone-multimodal-v1",
+        "manifest_path": "/workspace/data/seed_manifests/manifest_week07_multimodal_v1.json",
+        "dry_run": false
+      }
+    ],
+    "snapshot_reconciliation": {
+      "current_ticket_count": 240,
+      "retired_stale_count": 0
+    }
+  },
+  "knowledge": {
+    "parse": [
+      {
+        "manifest": "/workspace/data/generated/capstone/manifests/manifest_northstar_workspace.json",
+        "status": "warn",
+        "chunks": 58,
+        "week8_ready": true
+      },
+      {
+        "manifest": "/workspace/data/generated/capstone/manifests/manifest_northstar_edge_gateway.json",
+        "status": "warn",
+        "chunks": 15,
+        "week8_ready": true
+      },
+      {
+        "manifest": "/workspace/data/generated/capstone/manifests/manifest_northstar_studio.json",
+        "status": "warn",
+        "chunks": 15,
+        "week8_ready": true
+      },
+      {
+        "manifest": "/workspace/data/generated/capstone/manifests/manifest_cross_product.json",
+        "status": "warn",
+        "chunks": 22,
+        "week8_ready": true
+      },
+      {
+        "manifest": "/workspace/data/seed_manifests/manifest_week07_multimodal_v1.json",
+        "status": "warn",
+        "chunks": 7,
+        "week8_ready": true
+      }
+    ],
+    "snapshot_reconciliation": {
+      "active_source_count": 12,
+      "current_chunk_count": 117,
+      "retired_document_count": 0,
+      "retired_chunk_count": 0,
+      "retired_anchor_count": 0
+    },
+    "index": {
+      "index_release_id": "index-capstone-qwen3-1536-v1",
+      "data_release_id": "data-capstone-webhook-v2",
+      "chunk_strategy_version": "section_aware_v1",
+      "provider": "openai_compatible",
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "embedding_dim": 1536,
+      "total_chunks": 117,
+      "embedded": 0,
+      "skipped": 117,
+      "errors": 0,
+      "elapsed_sec": 1.5851669311523438,
+      "warnings": []
+    }
+  },
+  "analytics": {
+    "status": "pass",
+    "command": "dbt build --project-dir /workspace/analytics --profiles-dir /workspace/analytics --target dev"
+  },
+  "graph": {
+    "status": "warn",
+    "entities": 37,
+    "edges": 35,
+    "communities": 4,
+    "source_chunks": 117,
+    "data_release_ids": [
+      "data-capstone-webhook-v2"
+    ]
+  },
+  "release": {
+    "status": "skipped",
+    "reason": "evidence_replay"
+  }
+}

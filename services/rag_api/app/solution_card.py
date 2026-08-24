@@ -62,21 +62,43 @@ def deterministic_content(answer: str) -> tuple[str, list[str]]:
     return summary, steps
 
 
+def _supported_citations(question: str, answer: RagAnswerResponse) -> list[SolutionCardCitation]:
+    """Return one source-level citation only when that source covers every exact identifier."""
+
+    required = [re.sub(r"\s+", "", value).casefold() for value in _IDENTIFIER.findall(question)]
+    content_by_source: dict[str, list[str]] = {}
+    citation_by_source: dict[str, SolutionCardCitation] = {}
+    contexts = answer.retrieved_contexts or []
+    for context in contexts:
+        citation = context.citation
+        if citation is None:
+            continue
+        source = citation.source_url or citation.source_id
+        content_by_source.setdefault(source, []).append(context.content)
+        citation_by_source.setdefault(
+            source,
+            SolutionCardCitation(evidence_id=citation.evidence_id, source=source),
+        )
+
+    supported: list[SolutionCardCitation] = []
+    for source, citation in citation_by_source.items():
+        combined = re.sub(r"\s+", "", "\n".join(content_by_source[source])).casefold()
+        if all(value in combined for value in required):
+            supported.append(citation)
+    return supported
+
+
 async def build_solution_card(
     question: str,
     answer: RagAnswerResponse,
 ) -> tuple[SolutionCardResponse, dict[str, object]]:
-    citations = [
-        SolutionCardCitation(
-            evidence_id=item.evidence_id,
-            source=item.source_url or item.source_id,
-        )
-        for item in answer.citations
-    ]
+    citations = _supported_citations(question, answer)
     clarify = needs_clarification(question, has_evidence=bool(citations))
     abstain_reason = answer.abstain_reason
     if clarify and not abstain_reason:
         abstain_reason = "missing_required_context"
+    if abstain_reason:
+        citations = []
 
     summary, steps = deterministic_content(answer.answer)
     # The answer itself may be LLM-generated, but the product contract is a

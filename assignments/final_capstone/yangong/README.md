@@ -2,7 +2,7 @@
 
 ```yaml
 baseline_commit: 1473db6dfa785487e1a0f87bb97bdfec6719725c
-candidate_commit: 6eed8cf202c3c90ca593dbb1260039060919a0fb
+candidate_commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
 candidate_worktree: implementation committed; evidence metadata updated in follow-up commits
 theme: webhook-troubleshooting
 provider/model: siliconflow / Qwen/Qwen3.5-27B; embedding Qwen/Qwen3-Embedding-4B; rerank Pro/BAAI/bge-reranker-v2-m3
@@ -10,7 +10,7 @@ release_id: omni-dev-v2026.08.24-003（C8 回滚到 001 后已恢复候选）
 golden_set: 8 cases, 8 passed
 hard_gates: G1..G6 pass
 capstone_e2e: pass
-representative_trace_id: b0f075f1f659afee69410f85933857a2
+representative_trace_id: 92d5a759c5a6e1d6d952b6c0deb84a51
 known_limitations:
   - local Compose has no HA or deployment controller
   - eight-case latency sample is not a capacity test
@@ -54,11 +54,17 @@ SOLUTION_CARD_ENABLED=true
 
 ```bash
 docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml up -d --build
-docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
-docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
+  capstone_bootstrap python -m scripts.capstone.bootstrap --root /workspace --stage all \
+  --output assignments/final_capstone/yangong/reports/raw/bootstrap-all.json
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
+  capstone_bootstrap python -m scripts.capstone.bootstrap --root /workspace --stage all \
+  --skip-release-registration \
+  --output assignments/final_capstone/yangong/reports/raw/bootstrap-replay.json
 docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
   --entrypoint python capstone_bootstrap -m scripts.capstone.verify_e2e \
-  --require-llm --output reports/capstone/e2e-candidate.json
+  --require-llm --expected-release-id omni-dev-v2026.08.24-003 \
+  --output assignments/final_capstone/yangong/reports/raw/e2e-candidate-final.json
 docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
   --entrypoint python capstone_bootstrap -m scripts.capstone.evaluate_solution_cards \
   --expected-release-id omni-dev-v2026.08.24-003 \
@@ -66,10 +72,10 @@ docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --pro
   --rollback-report assignments/final_capstone/yangong/reports/raw/e2e-post-rollback.json \
   --rollback-manifest assignments/final_capstone/yangong/reports/releases/omni-dev-v2026.08.24-001.json \
   --expected-rollback-release-id omni-dev-v2026.08.24-001 \
-  --output reports/capstone/solution-card-eval-candidate.json
+  --output assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
 ```
 
-预期：bootstrap 首次得到 240 个工单、117 个 chunk；第二次 `tickets.skipped=240`、`index.skipped=117`；E2E 顶层 `status=pass`；Golden Set `passed=8`。产品入口为 <http://localhost:8010>，内部 RAG OpenAPI 为 <http://localhost:8000/docs>，Phoenix 为 <http://localhost:6006>。
+两次 bootstrap 分别写入独立报告：[首次](reports/raw/bootstrap-all.json)记录 `tickets.inserted=240`、117 个当前 chunk（`index.embedded=91/skipped=26`，因为 26 个向量已存在），[重放](reports/raw/bootstrap-replay.json)记录 `tickets.skipped=240`、`index.embedded=0/skipped=117`。E2E 顶层应为 `status=pass`，Golden Set 应为 `passed=8`。产品入口为 <http://localhost:8010>，内部 RAG OpenAPI 为 <http://localhost:8000/docs>，Phoenix 为 <http://localhost:6006>。
 
 ## 测试与发布
 
@@ -82,11 +88,20 @@ python -m release.generator --spec release/specs/final_capstone_baseline.yaml \
   --git-sha 1473db6dfa785487e1a0f87bb97bdfec6719725c
 python -m release.generator --spec release/specs/final_capstone_webhook.yaml \
   --output-dir "$release_output_dir" --environment dev --created-by yangong \
-  --git-sha 6eed8cf202c3c90ca593dbb1260039060919a0fb \
+  --git-sha 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72 \
   --previous-manifest "$release_output_dir"/omni-dev-*.json
 ```
 
 已生成的 baseline 和候选 manifest 分别是 [001](reports/releases/omni-dev-v2026.08.24-001.json) 与 [003](reports/releases/omni-dev-v2026.08.24-003.json)。原始报告均在 [reports/raw](reports/raw/)；注册、激活和回滚证据见 [release_and_rollback.md](reports/release_and_rollback.md)。
+
+Baseline 同口径评测必须在 001 runtime、active pointer 与真实旧 artifact 均恢复后运行；8 条问题会逐条实测 `404 solution_card_disabled`，报告质量指标为 0%，命令如下：
+
+```bash
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
+  --entrypoint python capstone_bootstrap -m scripts.capstone.evaluate_solution_cards \
+  --expected-release-id omni-dev-v2026.08.24-001 --expect-solution-card-disabled \
+  --output assignments/final_capstone/yangong/reports/raw/solution-card-eval-baseline.json
+```
 
 ## C7/C8 场景前置条件
 

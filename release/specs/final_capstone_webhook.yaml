@@ -17,6 +17,7 @@ components:
     source_paths:
       - pipelines/indexing/embedder.py
       - assignments/final_capstone/yangong/reports/raw/bootstrap-all.json
+      - assignments/final_capstone/yangong/reports/raw/bootstrap-replay.json
   prompt:
     release_id: prompt-solution-card-v1
     template_versions:
@@ -69,10 +70,11 @@ quality:
   eval:
     run_id: eval-final-capstone-candidate-fixed
     gate_status: pass
-    report_path: assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json
+    report_path: assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
     source_paths:
-      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json
-      - assignments/final_capstone/yangong/reports/raw/e2e-candidate.json
+      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
+      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-baseline.json
+      - assignments/final_capstone/yangong/reports/raw/e2e-candidate-final.json
       - assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json
 business_slo:
   policy_id: week12-slo-v1

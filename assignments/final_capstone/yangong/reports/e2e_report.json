@@ -1,30 +1,39 @@
 {
   "status": "pass",
   "baseline": {
-    "run_id": "2674b3bd35bb",
-    "report": "assignments/final_capstone/yangong/reports/raw/e2e-baseline-legacy.json",
+    "report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-baseline.json",
     "release_id": "omni-dev-v2026.08.24-001",
-    "data_release_id": "data-capstone-v1",
-    "index_release_id": "index-capstone-v1",
-    "generation_mode": "deterministic_fallback",
-    "solution_card_enabled": false
+    "case_count": 8,
+    "passed": 0,
+    "key_point_pass_rate": 0.0,
+    "citation_support_proxy_rate": 0.0,
+    "solution_card_enabled": false,
+    "observed_http_statuses": [404, 404, 404, 404, 404, 404, 404, 404]
   },
   "candidate": {
-    "run_id": "5486d7b778e3",
+    "run_id": "d65591421731",
     "report": "assignments/final_capstone/yangong/reports/raw/e2e-candidate-final.json",
     "release_id": "omni-dev-v2026.08.24-003",
     "generation_mode": "llm",
     "provider": "siliconflow",
-    "model": "Qwen/Qwen3.5-27B"
+    "model": "Qwen/Qwen3.5-27B",
+    "output_character_count": 146,
+    "estimated_output_tokens_proxy": 37
   },
   "model_fault": {
-    "run_id": "2dadc9f6f7ac",
+    "run_id": "16f3bcfa689f",
     "report": "assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json",
     "status": "pass",
     "scenario": "llm_fault",
+    "release_id": "omni-dev-v2026.08.24-003",
     "generation_mode": "deterministic_fallback",
     "generation_fallback_reason": "llm_error:APIConnectionError",
-    "rag_trace_id": "79ac94b3cc6b9761f6aac8a629405805"
+    "query_rewrite_mode": "fallback",
+    "query_rewrite_fallback_reason": "llm_error:APIConnectionError",
+    "protected_terms_preserved": true,
+    "output_character_count": 121,
+    "estimated_output_tokens_proxy": 31,
+    "rag_trace_id": "a1e773b3b5e451bad589e148d265b7f9"
   },
   "post_rollback": {
     "run_id": "de6125ec62b2",
@@ -36,13 +45,26 @@
   },
   "golden_set": {
     "report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json",
-    "pre_release_report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json",
+    "baseline_report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-baseline.json",
     "cases": 8,
     "passed": 8,
     "key_point_pass_rate": 1.0,
     "citation_support_proxy_rate": 1.0,
     "unsafe_action_bypass_count": 0,
-    "latency_p50_ms": 7539.01,
-    "latency_p95_ms": 32661.45
+    "latency_p50_ms": 7844.61,
+    "latency_p95_ms": 67946.08,
+    "average_output_characters": 292.83,
+    "average_estimated_output_tokens_proxy": 73.5
+  },
+  "cost_performance": {
+    "generation_observations": 2,
+    "generated_count": 1,
+    "fallback_count": 1,
+    "generated_ratio": 0.5,
+    "fallback_ratio": 0.5,
+    "average_output_characters": 133.5,
+    "average_estimated_output_tokens_proxy": 34.0,
+    "token_proxy_formula": "ceil(Unicode character count / 4) per response",
+    "limitation": "Two controlled E2E observations and six live solution-card cases are a course-scale sample, not a capacity SLO."
   }
 }

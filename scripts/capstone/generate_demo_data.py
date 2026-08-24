@@ -165,6 +165,18 @@ def generate_tickets(
 
 
 def generate_manifests(*, root: Path, output_dir: Path) -> list[Path]:
+    assignment_manifest_path = (
+        root
+        / "assignments"
+        / "final_capstone"
+        / "yangong"
+        / "data"
+        / "manifest_webhook_troubleshooting.json"
+    )
+    assignment_assets = {
+        Path(item["source_url_or_path"]).name: item
+        for item in json.loads(assignment_manifest_path.read_text(encoding="utf-8"))["assets"]
+    }
     grouped = {
         "northstar_workspace": [
             "workspace-admin-recovery.html",
@@ -193,9 +205,10 @@ def generate_manifests(*, root: Path, output_dir: Path) -> list[Path]:
             else:
                 path = root / "data" / "capstone" / "knowledge" / name
             raw = path.read_bytes()
+            declared = assignment_assets.get(path.name, {})
             assets.append(
                 {
-                    "source_id": f"doc:capstone:{path.stem}",
+                    "source_id": declared.get("source_id", f"doc:capstone:{path.stem}"),
                     "source_url_or_path": str(path),
                     "asset_type": "html",
                     "contract_ref": "omni://contracts/data/doc_asset/v1",
@@ -203,8 +216,10 @@ def generate_manifests(*, root: Path, output_dir: Path) -> list[Path]:
                     "checksum_sha256": hashlib.sha256(raw).hexdigest(),
                     "metadata_status": "complete",
                     "pii_scan_status": "clear",
-                    "language": "en",
-                    "notes": "Course-authored enterprise support knowledge asset.",
+                    "language": declared.get("language", "en"),
+                    "notes": declared.get(
+                        "notes", "Course-authored enterprise support knowledge asset."
+                    ),
                 }
             )
         manifest = {

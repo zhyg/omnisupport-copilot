@@ -5,11 +5,13 @@ baseline_release: omni-dev-v2026.08.24-001
 baseline_commit: 1473db6dfa785487e1a0f87bb97bdfec6719725c
 baseline_manifest_digest: sha256:ab17254254181897787df97a591c47a0fc4aeeac652fa2225acf8712204d6d3f
 candidate_release: omni-dev-v2026.08.24-003
-candidate_commit: 6eed8cf202c3c90ca593dbb1260039060919a0fb
+candidate_commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
 candidate_manifest_digest: sha256:c190567b2c60b39f0b6fa1adf051f749829449dafa4bcec240175802cd82b2bd
 rollback_generation: 5
 post_rollback_e2e: pass
 candidate_restored_generation: 6
+baseline_same_rubric_eval_generation: 7
+final_candidate_restored_generation: 8
 ```
 
 ## 真实的变更前绑定
@@ -36,6 +38,7 @@ Baseline `001` 由提交 `1473db6` 的代码和数据链生成，不包含本次
 4. 从提交 `1473db6` 的临时 worktree 恢复 baseline 数据、91 个确定性向量和图绑定，并以 `SOLUTION_CARD_ENABLED=false` 重建服务。
 5. 运行旧产品 E2E：RAG、KPI、低风险动作和 HITL 均 pass；运行时 release 与 active pointer 都为 `001`，方案卡端点返回 `404 solution_card_disabled`。
 6. 验证结束后重新提升 `003`，generation 6，并恢复 117 个 Qwen 文档向量和候选服务。
+7. 为补齐 R8，同样再次切到真实 `001`（generation 7），用相同 8 条问题逐条记录 `404 solution_card_disabled`；随后恢复 `003`（generation 8）。最终 runtime、RAG 与 active pointer 均为 `003`。
 
 机器证据为 [e2e-post-rollback.json](raw/e2e-post-rollback.json)：trace `3a63f1454524fe45f82c5e9f0ce25c17`，明确记录 baseline 的 data/index/prompt/graph 四项绑定以及方案卡关闭结果。最终 Golden Set 只有在该报告与 baseline manifest 完全匹配时才允许 C8 通过。
 

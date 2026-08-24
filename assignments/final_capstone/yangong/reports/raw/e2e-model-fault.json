@@ -1,12 +1,12 @@
 {
   "status": "pass",
-  "run_id": "2dadc9f6f7ac",
+  "run_id": "16f3bcfa689f",
   "scenario": "llm_fault",
   "checks": {
     "runtime": {
       "status": "ok",
       "service": "copilot_api",
-      "release_id": "capstone-webhook-v2.0.0",
+      "release_id": "omni-dev-v2026.08.24-003",
       "checks": {
         "postgres": "ok",
         "rag_api": "ok",
@@ -23,27 +23,50 @@
       "product_line": "northstar_workspace"
     },
     "rag": {
-      "message_id": "msg_21cae6c423f04cc3ab2d20c31a2d9deb",
-      "trace_id": "79ac94b3cc6b9761f6aac8a629405805",
-      "confidence": 0.155,
+      "message_id": "msg_b691ea4a939d4f5e8ec5c9982f184737",
+      "trace_id": "a1e773b3b5e451bad589e148d265b7f9",
+      "confidence": 0.965,
       "evidence_count": 5,
-      "release_id": "capstone-webhook-v2.0.0",
+      "release_id": "omni-dev-v2026.08.24-003",
       "generation_mode": "deterministic_fallback",
       "generation_provider": "siliconflow",
       "generation_model": "Qwen/Qwen3.5-27B",
-      "generation_fallback_reason": "llm_error:APIConnectionError"
+      "generation_fallback_reason": "llm_error:APIConnectionError",
+      "output_character_count": 121,
+      "estimated_output_tokens_proxy": 31,
+      "query_rewrite_debug": {
+        "mode": "fallback",
+        "provider": "siliconflow",
+        "model": "Qwen/Qwen3.5-27B",
+        "prompt_release_id": "query-rewrite-v1",
+        "rewrite_reasons": [
+          "preserve_lexical_identifiers",
+          "procedural_expansion"
+        ],
+        "fallback_reason": "llm_error:APIConnectionError",
+        "original_query_sha256": "sha256:4f727c4a9d85f90a67e8f99ba0bf54a0bf93c44b46a678adb4f5a9dcd76c568b",
+        "semantic_query_sha256": "sha256:5743021f87a06f56ec1a204035a6d2ad8a70015956244877b4c3a4259faf950c",
+        "original_query_length": 66,
+        "semantic_query_length": 84,
+        "lexical_term_count": 3,
+        "hyde_used": false,
+        "attempts": 2,
+        "safety_repairs": [],
+        "cache_hit": false,
+        "coalesced": false,
+        "circuit_state": "open",
+        "latency_ms": 110.89,
+        "expected_protected_term_count": 3,
+        "protected_terms_preserved": true
+      }
     },
     "solution_card": {
-      "trace_id": "e08c3d6ec928fff9502aac9e62cabded",
-      "release_id": "capstone-webhook-v2.0.0",
+      "trace_id": "71309ed91635f43742e84c1b89d6da7c",
+      "release_id": "omni-dev-v2026.08.24-003",
       "confidence": 0.986,
       "step_count": 1,
       "evidence_ids": [
-        "anchor-a56557b868f54b9270391144",
-        "anchor-27186a007b3d1acebd2b640d",
-        "anchor-0651f5f3c4595bcb69cf8a17",
-        "anchor-56b0ea062d33746b32ee7899",
-        "anchor-490bac575ce3db539a0f632d"
+        "anchor-a56557b868f54b9270391144"
       ],
       "response_fields": [
         "abstain_reason",
@@ -61,18 +84,18 @@
       "status": "persisted"
     },
     "release_pointer": {
-      "release_id": "capstone-webhook-v2.0.0",
+      "release_id": "omni-dev-v2026.08.24-003",
       "environment": "dev",
       "status": "active",
       "data_release_id": "data-capstone-webhook-v2",
       "index_release_id": "index-capstone-qwen3-1536-v1",
       "prompt_release_id": "prompt-solution-card-v1",
       "graph_release_id": "graph-capstone-webhook-v2",
-      "promoted_at": "2026-08-24T02:17:10.567138+00:00"
+      "promoted_at": "2026-08-24T05:56:14.125645+00:00"
     },
     "kpi": {
       "row_count": 98,
-      "audit_id": "51119889-aa77-4be8-881e-918e257bb290",
+      "audit_id": "bbbfb6e3-f136-4b0f-9b12-d94e92bb9e22",
       "policies": [
         "tool_contract",
         "metric_registry",
@@ -84,23 +107,39 @@
       ]
     },
     "low_risk_action": {
-      "ticket_id": "TKT-20260706-900123",
-      "operation": "add_internal_note",
-      "status": "completed",
-      "trace_id": "e162eb1bd6c86615e07b0d56a21a6914",
-      "lineage_event_id": "act_7cc10e1becbd4de28488",
-      "release_id": "capstone-webhook-v2.0.0",
-      "approval_id": null,
-      "hitl_required": false
+      "idempotency_key": "capstone-e2e-note-16f3bcfa689f",
+      "first": {
+        "ticket_id": "TKT-20260706-900123",
+        "operation": "add_internal_note",
+        "status": "completed",
+        "trace_id": "7fd0f064afc2f167385145d12042b415",
+        "lineage_event_id": "act_f1c2755189bc4730a418",
+        "release_id": "omni-dev-v2026.08.24-003",
+        "approval_id": null,
+        "hitl_required": false
+      },
+      "replay": {
+        "status": "cached",
+        "trace_id": "7fd0f064afc2f167385145d12042b415",
+        "operation": "add_internal_note",
+        "ticket_id": "TKT-20260706-900123",
+        "release_id": "omni-dev-v2026.08.24-003",
+        "approval_id": null,
+        "hitl_required": false,
+        "lineage_event_id": "act_f1c2755189bc4730a418",
+        "cached_from": "2026-08-24T06:01:50.252521+00:00"
+      },
+      "timeline_before_count": 0,
+      "timeline_after_count": 1
     },
     "hitl": {
-      "approval_id": "apr_ae7507e1a33d4c28b213",
-      "wait_trace_id": "b6bf52d0be75d432e8c18a825bb574f8",
-      "resume_trace_id": "67b108a926ffee7fd011a12bf8ef3943",
+      "approval_id": "apr_ff66f07ff3a148dcba97",
+      "wait_trace_id": "499ffdc60d6a0d5f96c84f3a079a19bb",
+      "resume_trace_id": "1359806b1bb19b5237091abef5040a63",
       "status": "completed"
     },
     "phoenix_rag": {
-      "trace_id": "79ac94b3cc6b9761f6aac8a629405805",
+      "trace_id": "a1e773b3b5e451bad589e148d265b7f9",
       "span_count": 19,
       "required_spans": [
         "product.copilot.answer",
@@ -110,7 +149,7 @@
       ]
     },
     "phoenix_solution_card": {
-      "trace_id": "e08c3d6ec928fff9502aac9e62cabded",
+      "trace_id": "71309ed91635f43742e84c1b89d6da7c",
       "span_count": 20,
       "required_spans": [
         "product.solution_card",
@@ -120,7 +159,7 @@
       ]
     },
     "phoenix_hitl_wait": {
-      "trace_id": "b6bf52d0be75d432e8c18a825bb574f8",
+      "trace_id": "499ffdc60d6a0d5f96c84f3a079a19bb",
       "span_count": 12,
       "required_spans": [
         "agent.lineage.persist",
@@ -129,7 +168,7 @@
       ]
     },
     "phoenix_hitl_resume": {
-      "trace_id": "67b108a926ffee7fd011a12bf8ef3943",
+      "trace_id": "1359806b1bb19b5237091abef5040a63",
       "span_count": 7,
       "required_spans": [
         "agent.lineage.persist",

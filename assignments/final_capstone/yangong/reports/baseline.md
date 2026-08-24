@@ -31,4 +31,4 @@ solution_card: disabled
 
 [e2e-baseline-legacy.json](raw/e2e-baseline-legacy.json) 顶层为 `pass`，run_id 为 `2674b3bd35bb`。原有 RAG 返回 5 条 evidence，KPI 查询有 98 行，低风险备注直接完成，财务动作进入 HITL 并在批准后恢复；Phoenix RAG trace 为 `3e9f3cd0461e7146bb5ff745468b633a`。
 
-基线没有方案卡能力，因此不把当前实现运行在旧 release 标签上的结果伪装成 baseline 质量。E2E 明确验证方案卡端点返回 `404 solution_card_disabled`；候选质量提升从“能力未发布”到最终 Golden Set 8/8。
+基线没有方案卡能力，但仍使用同一个 Golden Set 和同一评测器逐条请求。001 runtime、active pointer 与旧 artifact 全部恢复后，8 条请求均实测为 `404 solution_card_disabled`，因此基线关键点和 citation 支持率为 0%，p50/p95 分别为 9.83/17.17 ms。逐案例原始结果见 [solution-card-eval-baseline.json](raw/solution-card-eval-baseline.json)，候选同口径结果为 8/8。

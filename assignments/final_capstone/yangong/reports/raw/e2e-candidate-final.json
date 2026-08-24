@@ -1,6 +1,6 @@
 {
   "status": "pass",
-  "run_id": "5486d7b778e3",
+  "run_id": "d65591421731",
   "scenario": "standard",
   "checks": {
     "runtime": {
@@ -23,27 +23,50 @@
       "product_line": "northstar_workspace"
     },
     "rag": {
-      "message_id": "msg_84bd6c1aaacc4288ac698cafd2f54ebd",
-      "trace_id": "353be2d8b0d455010b3c0228085d5fdc",
-      "confidence": 0.156,
+      "message_id": "msg_d8f617846bbb47499428c42d1fc80e29",
+      "trace_id": "688123eff9ca6376647b94e21d7d7571",
+      "confidence": 0.964,
       "evidence_count": 5,
       "release_id": "omni-dev-v2026.08.24-003",
       "generation_mode": "llm",
       "generation_provider": "siliconflow",
       "generation_model": "Qwen/Qwen3.5-27B",
-      "generation_fallback_reason": null
+      "generation_fallback_reason": null,
+      "output_character_count": 146,
+      "estimated_output_tokens_proxy": 37,
+      "query_rewrite_debug": {
+        "mode": "fallback",
+        "provider": "siliconflow",
+        "model": "Qwen/Qwen3.5-27B",
+        "prompt_release_id": "query-rewrite-v1",
+        "rewrite_reasons": [
+          "preserve_lexical_identifiers",
+          "procedural_expansion"
+        ],
+        "fallback_reason": "rewrite_timeout",
+        "original_query_sha256": "sha256:4f727c4a9d85f90a67e8f99ba0bf54a0bf93c44b46a678adb4f5a9dcd76c568b",
+        "semantic_query_sha256": "sha256:5743021f87a06f56ec1a204035a6d2ad8a70015956244877b4c3a4259faf950c",
+        "original_query_length": 66,
+        "semantic_query_length": 84,
+        "lexical_term_count": 3,
+        "hyde_used": false,
+        "attempts": 2,
+        "safety_repairs": [],
+        "cache_hit": false,
+        "coalesced": false,
+        "circuit_state": "closed",
+        "latency_ms": 8061.31,
+        "expected_protected_term_count": 3,
+        "protected_terms_preserved": true
+      }
     },
     "solution_card": {
-      "trace_id": "e0b6a2f59649dcbd4e6b34d7d5f4bda8",
+      "trace_id": "92d5a759c5a6e1d6d952b6c0deb84a51",
       "release_id": "omni-dev-v2026.08.24-003",
       "confidence": 0.986,
       "step_count": 1,
       "evidence_ids": [
-        "anchor-a56557b868f54b9270391144",
-        "anchor-27186a007b3d1acebd2b640d",
-        "anchor-0651f5f3c4595bcb69cf8a17",
-        "anchor-56b0ea062d33746b32ee7899",
-        "anchor-490bac575ce3db539a0f632d"
+        "anchor-a56557b868f54b9270391144"
       ],
       "response_fields": [
         "abstain_reason",
@@ -68,11 +91,11 @@
       "index_release_id": "index-capstone-qwen3-1536-v1",
       "prompt_release_id": "prompt-solution-card-v1",
       "graph_release_id": "graph-capstone-webhook-v2",
-      "promoted_at": "2026-08-24T02:32:53.910995+00:00"
+      "promoted_at": "2026-08-24T05:56:14.125645+00:00"
     },
     "kpi": {
       "row_count": 98,
-      "audit_id": "c54cd3ff-2b4d-47b7-adc1-20805a351b8c",
+      "audit_id": "9d436bc6-8827-4c4e-b323-d9576d9ef8c4",
       "policies": [
         "tool_contract",
         "metric_registry",
@@ -84,23 +107,39 @@
       ]
     },
     "low_risk_action": {
-      "ticket_id": "TKT-20260706-900123",
-      "operation": "add_internal_note",
-      "status": "completed",
-      "trace_id": "92fd764e79dbe731ca5bffaf029358d7",
-      "lineage_event_id": "act_da5f6a0829a94a1abbe0",
-      "release_id": "omni-dev-v2026.08.24-003",
-      "approval_id": null,
-      "hitl_required": false
+      "idempotency_key": "capstone-e2e-note-d65591421731",
+      "first": {
+        "ticket_id": "TKT-20260706-900123",
+        "operation": "add_internal_note",
+        "status": "completed",
+        "trace_id": "f8ef7a890ae62fab50969209fd187044",
+        "lineage_event_id": "act_a1bff5d2bf604bfd8bbb",
+        "release_id": "omni-dev-v2026.08.24-003",
+        "approval_id": null,
+        "hitl_required": false
+      },
+      "replay": {
+        "status": "cached",
+        "trace_id": "f8ef7a890ae62fab50969209fd187044",
+        "operation": "add_internal_note",
+        "ticket_id": "TKT-20260706-900123",
+        "release_id": "omni-dev-v2026.08.24-003",
+        "approval_id": null,
+        "hitl_required": false,
+        "lineage_event_id": "act_a1bff5d2bf604bfd8bbb",
+        "cached_from": "2026-08-24T06:02:43.469481+00:00"
+      },
+      "timeline_before_count": 0,
+      "timeline_after_count": 1
     },
     "hitl": {
-      "approval_id": "apr_93c142b173d345fa9d7e",
-      "wait_trace_id": "1ff95b92d947b48dd452f0f7994b5e2b",
-      "resume_trace_id": "71c895e0b5b9f88ad4644d041dfe8ab1",
+      "approval_id": "apr_0abf174d87f5454ebcf2",
+      "wait_trace_id": "75eac5b6d4b269ddac2a83df3c728e79",
+      "resume_trace_id": "ffb8bf501b26540c7835ce3d6cb1fd2f",
       "status": "completed"
     },
     "phoenix_rag": {
-      "trace_id": "353be2d8b0d455010b3c0228085d5fdc",
+      "trace_id": "688123eff9ca6376647b94e21d7d7571",
       "span_count": 19,
       "required_spans": [
         "product.copilot.answer",
@@ -110,7 +149,7 @@
       ]
     },
     "phoenix_solution_card": {
-      "trace_id": "e0b6a2f59649dcbd4e6b34d7d5f4bda8",
+      "trace_id": "92d5a759c5a6e1d6d952b6c0deb84a51",
       "span_count": 20,
       "required_spans": [
         "product.solution_card",
@@ -120,7 +159,7 @@
       ]
     },
     "phoenix_hitl_wait": {
-      "trace_id": "1ff95b92d947b48dd452f0f7994b5e2b",
+      "trace_id": "75eac5b6d4b269ddac2a83df3c728e79",
       "span_count": 12,
       "required_spans": [
         "agent.lineage.persist",
@@ -129,7 +168,7 @@
       ]
     },
     "phoenix_hitl_resume": {
-      "trace_id": "71c895e0b5b9f88ad4644d041dfe8ab1",
+      "trace_id": "ffb8bf501b26540c7835ce3d6cb1fd2f",
       "span_count": 7,
       "required_spans": [
         "agent.lineage.persist",
