@@ -148,12 +148,14 @@ def test_operational_cases_cannot_pass_without_scenario_setup():
         c7,
         fault_report=None,
         rollback_report=None,
+        rollback_manifest=None,
         expected_rollback_release_id=None,
     )["status"] == "not_run"
     assert _scenario_result(
         c8,
         fault_report=None,
         rollback_report=None,
+        rollback_manifest=None,
         expected_rollback_release_id=None,
     )["status"] == "not_run"
 
@@ -178,7 +180,13 @@ def test_operational_cases_validate_fault_and_real_rollback_evidence():
         "scenario": "release_rollback",
         "checks": {
             "runtime": {"status": "ok", "release_id": "baseline"},
-            "release_pointer": {"release_id": "baseline"},
+            "release_pointer": {
+                "release_id": "baseline",
+                "data_release_id": "data-baseline",
+                "index_release_id": "index-baseline",
+                "prompt_release_id": "prompt-baseline",
+                "graph_release_id": "graph-baseline",
+            },
             "rag": {
                 "release_id": "baseline",
                 "evidence_count": 5,
@@ -194,12 +202,25 @@ def test_operational_cases_validate_fault_and_real_rollback_evidence():
         {"case_id": "C7", "fault_injection": "llm_timeout"},
         fault_report=fault,
         rollback_report=None,
+        rollback_manifest=None,
         expected_rollback_release_id=None,
     )["status"] == "pass"
     assert _scenario_result(
         {"case_id": "C8", "requires_release_rollback": True},
         fault_report=None,
         rollback_report=rollback,
+        rollback_manifest={
+            "metadata": {"release_id": "baseline"},
+            "spec": {
+                "components": {
+                    "data": {"release_id": "data-baseline"},
+                    "index": {"release_id": "index-baseline"},
+                    "prompt": {"release_id": "prompt-baseline"},
+                    "graph": {"release_id": "graph-baseline"},
+                    "service": {"feature_flags": {"solution_card": False}},
+                }
+            },
+        },
         expected_rollback_release_id="baseline",
     )["status"] == "pass"
 

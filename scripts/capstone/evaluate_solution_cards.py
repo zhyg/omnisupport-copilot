@@ -60,6 +60,7 @@ def _scenario_result(
     *,
     fault_report: dict[str, Any] | None,
     rollback_report: dict[str, Any] | None,
+    rollback_manifest: dict[str, Any] | None,
     expected_rollback_release_id: str | None,
 ) -> dict[str, Any] | None:
     if case.get("fault_injection"):
@@ -96,6 +97,16 @@ def _scenario_result(
         rag = checks.get("rag", {})
         disabled = checks.get("solution_card_disabled", {})
         pointer = checks.get("release_pointer", {}) or {}
+        manifest = rollback_manifest or {}
+        manifest_components = manifest.get("spec", {}).get("components", {})
+        expected_components = {
+            name: manifest_components.get(name, {}).get("release_id")
+            for name in ("data", "index", "prompt", "graph")
+        }
+        observed_components = {
+            name: pointer.get(f"{name}_release_id")
+            for name in ("data", "index", "prompt", "graph")
+        }
         validation = {
             "scenario_setup": report.get("scenario") == "release_rollback",
             "legacy_e2e": report.get("status") == "pass" and runtime.get("status") == "ok",
@@ -105,6 +116,14 @@ def _scenario_result(
             and pointer.get("release_id") == expected_rollback_release_id,
             "new_capability_disabled": disabled
             == {"status_code": 404, "detail": "solution_card_disabled"},
+            "component_bindings": bool(rollback_manifest)
+            and manifest.get("metadata", {}).get("release_id")
+            == expected_rollback_release_id
+            and expected_components == observed_components
+            and manifest_components.get("service", {})
+            .get("feature_flags", {})
+            .get("solution_card")
+            is False,
             "evidence": int(rag.get("evidence_count", 0)) > 0,
             "contract": bool(rag.get("trace_id")),
         }
@@ -149,6 +168,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     latencies: list[float] = []
     fault_report = _load_report(args.fault_report)
     rollback_report = _load_report(args.rollback_report)
+    rollback_manifest = _load_report(args.rollback_manifest)
     with httpx.Client(base_url=args.base_url.rstrip("/"), timeout=args.timeout) as client:
         token = _login(client, args.agent_email, args.agent_password)
         ticket_id = _workspace_case(client, token)
@@ -157,6 +177,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 case,
                 fault_report=fault_report,
                 rollback_report=rollback_report,
+                rollback_manifest=rollback_manifest,
                 expected_rollback_release_id=args.expected_rollback_release_id,
             )
             if scenario is not None:
@@ -244,6 +265,7 @@ def main() -> int:
     parser.add_argument("--expected-release-id", required=True)
     parser.add_argument("--fault-report", type=Path)
     parser.add_argument("--rollback-report", type=Path)
+    parser.add_argument("--rollback-manifest", type=Path)
     parser.add_argument("--expected-rollback-release-id")
     parser.add_argument("--case-id", help="Run only a case-id prefix such as C4")
     parser.add_argument(

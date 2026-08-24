@@ -961,10 +961,22 @@ async def operations_overview(principal: Principal = Depends(current_principal))
         release = await conn.fetchrow(
             """
             SELECT gm.release_id, gm.environment, 'active' AS status,
-                   gm.manifest_body->>'data_release_id' AS data_release_id,
-                   gm.manifest_body->>'index_release_id' AS index_release_id,
-                   gm.manifest_body->>'prompt_release_id' AS prompt_release_id,
-                   gm.manifest_body->>'graph_release_id' AS graph_release_id,
+                   COALESCE(
+                     gm.manifest_body->>'data_release_id',
+                     gm.manifest_body#>>'{spec,components,data,release_id}'
+                   ) AS data_release_id,
+                   COALESCE(
+                     gm.manifest_body->>'index_release_id',
+                     gm.manifest_body#>>'{spec,components,index,release_id}'
+                   ) AS index_release_id,
+                   COALESCE(
+                     gm.manifest_body->>'prompt_release_id',
+                     gm.manifest_body#>>'{spec,components,prompt,release_id}'
+                   ) AS prompt_release_id,
+                   COALESCE(
+                     gm.manifest_body->>'graph_release_id',
+                     gm.manifest_body#>>'{spec,components,graph,release_id}'
+                   ) AS graph_release_id,
                    pointer.updated_at AS promoted_at
             FROM release_environment_pointer pointer
             JOIN governed_release_manifest gm ON gm.release_id = pointer.active_release_id
