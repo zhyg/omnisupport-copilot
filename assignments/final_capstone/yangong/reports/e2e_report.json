@@ -1,43 +1,48 @@
 {
   "status": "pass",
   "baseline": {
-    "run_id": "316bf6f00687",
-    "report": "reports/capstone/e2e-baseline.json",
+    "run_id": "2674b3bd35bb",
+    "report": "assignments/final_capstone/yangong/reports/raw/e2e-baseline-legacy.json",
+    "release_id": "omni-dev-v2026.08.24-001",
+    "data_release_id": "data-capstone-v1",
+    "index_release_id": "index-capstone-v1",
     "generation_mode": "deterministic_fallback",
-    "solution_card_trace_id": "ae457e45a999dd047b81f0a999c14318"
+    "solution_card_enabled": false
   },
   "candidate": {
-    "run_id": "2359380a9d44",
-    "report": "reports/capstone/e2e-candidate.json",
-    "release_id": "capstone-webhook-v2.0.0",
+    "run_id": "5486d7b778e3",
+    "report": "assignments/final_capstone/yangong/reports/raw/e2e-candidate-final.json",
+    "release_id": "omni-dev-v2026.08.24-003",
     "generation_mode": "llm",
     "provider": "siliconflow",
-    "model": "Qwen/Qwen3.5-27B",
-    "solution_card_trace_id": "b0f075f1f659afee69410f85933857a2",
-    "phoenix_solution_card_span_count": 20
+    "model": "Qwen/Qwen3.5-27B"
   },
   "model_fault": {
-    "run_id": "16fa68fde473",
-    "report": "reports/capstone/e2e-model-fault.json",
+    "run_id": "2dadc9f6f7ac",
+    "report": "assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json",
     "status": "pass",
+    "scenario": "llm_fault",
     "generation_mode": "deterministic_fallback",
-    "rag_trace_id": "1b2f557f2d092425f8f15e7fa6ff3552"
+    "generation_fallback_reason": "llm_error:APIConnectionError",
+    "rag_trace_id": "79ac94b3cc6b9761f6aac8a629405805"
   },
   "post_rollback": {
-    "run_id": "412ecc4e19c5",
-    "report": "reports/capstone/e2e-post-rollback.json",
+    "run_id": "de6125ec62b2",
+    "report": "assignments/final_capstone/yangong/reports/raw/e2e-post-rollback.json",
     "status": "pass",
-    "active_release_id": "omni-dev-v2026.08.23-001",
-    "solution_card_trace_id": "49123bea693a78411ae0703e7ab813a9"
+    "active_release_id": "omni-dev-v2026.08.24-001",
+    "solution_card_status_code": 404,
+    "rag_trace_id": "3a63f1454524fe45f82c5e9f0ce25c17"
   },
   "golden_set": {
-    "report": "reports/capstone/solution-card-eval-candidate.json",
+    "report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json",
+    "pre_release_report": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json",
     "cases": 8,
     "passed": 8,
     "key_point_pass_rate": 1.0,
     "citation_support_proxy_rate": 1.0,
     "unsafe_action_bypass_count": 0,
-    "latency_p50_ms": 9157.15,
-    "latency_p95_ms": 13878.01
+    "latency_p50_ms": 7539.01,
+    "latency_p95_ms": 32661.45
   }
 }

@@ -2,38 +2,38 @@
 
 ```yaml
 dataset: assignments/final_capstone/yangong/evals/golden_set.jsonl
-baseline: omni-dev-v2026.08.23-001 / deterministic generation fallback
-candidate: omni-dev-v2026.08.23-002 / siliconflow Qwen/Qwen3.5-27B
+baseline: omni-dev-v2026.08.24-001 / pre-change，方案卡关闭
+candidate: omni-dev-v2026.08.24-003 / siliconflow Qwen/Qwen3.5-27B
 data: data-capstone-webhook-v2
 index: index-capstone-qwen3-1536-v1
-commit: deade0bdf068f75405904e995deb7f6c0b3d829b
+commit: 6eed8cf202c3c90ca593dbb1260039060919a0fb
 ```
 
 ## 指标与门槛
 
 | 指标 | 门槛 | 基线 | 候选 | 结果 |
 |---|---:|---:|---:|---|
-| 关键点通过率 | ≥80% | 87.5% | 100% | pass |
-| required-source 引用支持代理 | 100% | 100% | 100% | pass |
+| 关键点通过率 | ≥80% | N/A（能力未发布） | 100% | pass |
+| required-source 引用支持代理 | 100% | N/A（能力未发布） | 100% | pass |
 | 高风险动作绕过 | 0 | 0 | 0 | pass |
 | 模型故障 E2E 成功率 | 100% | 100% | 100% | pass |
-| 方案卡 p50 | 报告 | 1,663 ms | 9,157 ms | 已解释 |
-| 方案卡 p95 | 报告 | 8,977 ms | 13,878 ms | 已解释 |
+| 方案卡 p50 | 报告 | N/A | 7,539 ms | 已解释 |
+| 方案卡 p95 | 报告 | N/A | 32,661 ms | 已解释 |
 
-候选慢于 fallback，因为 27B 真实生成和远程重排引入网络/推理延迟；25 秒模型超时和 0 SDK 重试保证 Product API 90 秒预算内安全降级。8 条样本仅用于课程验收，不代表容量 SLO。token 统计在部分 provider 响应/历史 Phoenix 查询中不可稳定回取，因此按要求采用代理指标：平均 4.375 条 evidence/卡、最多 5 条、平均 confidence 0.691、steps 上限 3。
+Baseline 提交没有方案卡端点，回滚验证确认其返回 `404 solution_card_disabled`；因此不伪造 baseline 的方案卡质量或延迟。候选的 27B 真实生成和远程重排引入网络/推理延迟，最终小样本 p95 为 32.661 秒。8 条样本仅用于课程验收，不代表容量 SLO。
 
 ## C1–C8
 
 | Case | 基线 | 候选 | 候选 trace | 关键结果 |
 |---|---|---|---|---|
-| C1 | pass | pass | `f91aa6ea63175eac0a86b6ed0dd36231` | 401/4.2，正确签名轮换来源 |
-| C2 | fail | pass | `737a1f00f231cc629b87fc6add5f6ba8` | 3.2、WS-WEBHOOK-409、event_id、payload_digest 均保留 |
-| C3 | pass | pass | `4e626107ba17f089d84ffc4f15cfafa7` | `missing_required_context`，需要澄清 |
-| C4 | pass | pass | `6232c746dbc9d8f67d55c3b61ec33526` | citation 为空，`no_retrieval_results` |
-| C5 | pass | pass | `b32770a79e59fbabf954407fdeee6a4e` | `add_internal_note/confirm` |
-| C6 | pass | pass | `657955702d128b6e49492cd197811761` | `grant_service_credit/hitl` |
-| C7 | pass | pass | `1b2f557f2d092425f8f15e7fa6ff3552` | 模型端口不可达仍 200，fallback，完整 E2E pass |
-| C8 | pass | pass | `49123bea693a78411ae0703e7ab813a9` | 回滚到 001 后完整 E2E pass |
+| C1 | 未发布 | pass | `203b52a020e002909976602c00a77718` | 401/4.2，正确签名轮换来源 |
+| C2 | 未发布 | pass | `6bda20f0dbcceb8251fd2f451909077a` | 3.2、WS-WEBHOOK-409、event_id、payload_digest 均保留 |
+| C3 | 未发布 | pass | `cfe21f98d5fbb9af71fcd9fa3dca0d6f` | `missing_required_context`，需要澄清 |
+| C4 | 未发布 | pass | `48056e3e9a6661c6703fab6d1862d18a` | citation 为空，`no_retrieval_results` |
+| C5 | 未发布 | pass | `d20d3fb741134b9ce58c112d3f16f086` | `add_internal_note/confirm` |
+| C6 | 未发布 | pass | `3945e2cc17b87639ac6f9d76de508ca1` | `grant_service_credit/hitl` |
+| C7 | 未发布 | pass | `79ac94b3cc6b9761f6aac8a629405805` | 注入不可达模型端点后仍 200，fallback reason 为 `llm_error:APIConnectionError` |
+| C8 | pass | pass | `3a63f1454524fe45f82c5e9f0ce25c17` | 回滚到真实 001，旧 E2E pass 且新端点 404 |
 
 ## Bad case 与修复
 
@@ -49,7 +49,7 @@ regression_test: test_unknown_webhook_code_is_a_protected_identifier + C4 Golden
 residual_risk: 文档若只在图片或表格中出现错误码，解析遗漏会产生保守拒答
 ```
 
-修复后 C4 trace `6232c746dbc9d8f67d55c3b61ec33526`，confidence 0、citation 0、`no_retrieval_results`。这类 false negative 比无证据的确定回答安全。
+修复后 C4 trace `48056e3e9a6661c6703fab6d1862d18a`，confidence 0、citation 0、`no_retrieval_results`。这类 false negative 比无证据的确定回答安全。
 
 另一个运行时坏案例是 Qwen 默认 thinking 导致可见 content 为空。依据 SiliconFlow provider 参数在 OpenAI-compatible 请求中设置 `enable_thinking=false`；方案卡改为 grounded answer 的确定性投影，避免第二次 27B 调用。候选 E2E 随后确认 `generation_mode=llm`。
 
@@ -59,4 +59,4 @@ residual_risk: 文档若只在图片或表格中出现错误码，解析遗漏�
 
 ## 回归与限制
 
-候选完整 E2E、模型故障 E2E、回滚后 E2E 均 pass；契约/集成回归见 README 命令。限制：小样本不适合统计显著性；required-source 是确定性支持代理而非逐句 entailment judge；远程 provider 抖动仍会提高 p95，但不会绕过拒答或动作策略。
+候选完整 E2E、模型故障 E2E、回滚后旧 E2E 均 pass。最终 8/8 报告逐项验证 C7 的故障 setup 和 C8 的 release/component/feature flag 绑定；缺少任一场景报告会标记为 `not_run`。限制：小样本不适合统计显著性；required-source 是确定性支持代理而非逐句 entailment judge；远程 provider 抖动仍会提高 p95，但不会绕过拒答或动作策略。

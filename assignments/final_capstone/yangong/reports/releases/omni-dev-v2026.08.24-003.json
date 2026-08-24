@@ -1,0 +1,229 @@
+{
+  "api_version": "omnisupport.ai/v2",
+  "kind": "GovernedRelease",
+  "metadata": {
+    "release_id": "omni-dev-v2026.08.24-003",
+    "environment": "dev",
+    "created_at": "2026-08-24T02:29:40.304549+00:00",
+    "created_by": "yangong",
+    "approved_by": null,
+    "git_sha": "6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72",
+    "previous_release_id": "omni-dev-v2026.08.24-001",
+    "previous_manifest_digest": "sha256:ab17254254181897787df97a591c47a0fc4aeeac652fa2225acf8712204d6d3f"
+  },
+  "spec": {
+    "components": {
+      "data": {
+        "release_id": "data-capstone-webhook-v2",
+        "lakefs_repository": "omnisupport-data",
+        "lakefs_ref": "refs/tags/data-capstone-webhook-v2",
+        "iceberg_snapshot_ids": {
+          "bronze.ticket_event": "capstone-webhook-v2",
+          "silver.ticket_current": "capstone-webhook-v2"
+        },
+        "artifact_digests": {
+          "assignments/final_capstone/yangong/data/manifest_webhook_troubleshooting.json": "sha256:b1638d52f94ed3f57f17c4bb7ab7fb8ecddfcff7172291a257a75adaa48de9ff",
+          "assignments/final_capstone/yangong/data/webhook-signature-rotation.html": "sha256:5d343fe15ac853c2299bbc3fd838e06336ea9db929cffd5c129c93e35f89a966",
+          "assignments/final_capstone/yangong/data/webhook-retry-idempotency.html": "sha256:d41d5b23988650e8dd26a1f34eba994c66849bebdb78151c192e3da84222cbd2"
+        }
+      },
+      "index": {
+        "release_id": "index-capstone-qwen3-1536-v1",
+        "data_release_id": "data-capstone-webhook-v2",
+        "embedding_model": "Qwen/Qwen3-Embedding-4B@1536",
+        "artifact_digests": {
+          "pipelines/indexing/embedder.py": "sha256:d992a72931ede232c9a09a4da52eab27ebec3f424147c2c178b706ef1547db29",
+          "assignments/final_capstone/yangong/reports/raw/bootstrap-all.json": "sha256:743b8b7ec9309bf30d40d3df39901d734350361f4b0200c283b4e81a53375e45"
+        }
+      },
+      "prompt": {
+        "release_id": "prompt-solution-card-v1",
+        "template_versions": {
+          "answer": "answer_v1",
+          "no_answer": "no_answer_v1",
+          "solution_card": "solution_card_v1"
+        },
+        "artifact_digests": {
+          "services/rag_api/app/prompts/answer_v1.md": "sha256:5adcef9387e4c33961635ac17dab02aa76a50f6b8b27799b3a33ec056c13b70d",
+          "services/rag_api/app/prompts/solution_card_v1.md": "sha256:18bfb482cbef0fa9a3d01798c01d8c6072499266fc36c281ae616d454813b855"
+        }
+      },
+      "model": {
+        "release_id": "model-siliconflow-final-v1",
+        "provider": "siliconflow",
+        "model_id": "Qwen/Qwen3.5-27B",
+        "snapshot": "Qwen/Qwen3.5-27B@provider-pinned-2026-08-23",
+        "system_card": "assignments/final_capstone/yangong/contracts/capability.md",
+        "models": {
+          "generation": "Qwen/Qwen3.5-27B",
+          "embedding": "Qwen/Qwen3-Embedding-4B",
+          "rerank": "Pro/BAAI/bge-reranker-v2-m3"
+        },
+        "artifact_digests": {
+          "services/rag_api/app/llm.py": "sha256:e9bc871b26354a311c246c7fe764d9e63c61e736374c1072004b878312fe5092",
+          "services/rag_api/app/retrieval.py": "sha256:bdcd52825362237e6dbb58f7e7783dac7bbd804fb3d28422107a0aa3466177fa",
+          "assignments/final_capstone/yangong/contracts/capability.md": "sha256:627294949c7907e358a756c95a3c708a37096590607f156cdc4d4d61b374337b"
+        }
+      },
+      "skills": {
+        "release_id": "skills-capstone-existing-v1",
+        "packs": [
+          "add_internal_note@existing",
+          "grant_service_credit@existing"
+        ],
+        "artifact_digests": {
+          "contracts/tools/tool_contract_schema.json": "sha256:8c0c04e9060992d230144e4b01ea5a25ccf211009e354adbcc9343a5f315cf24",
+          "contracts/tools/tools/ticket_update.json": "sha256:cecf0637c294f560287221b37886c83b2c001e964bf5c86a21af4c1ae349f532"
+        }
+      },
+      "graph": {
+        "release_id": "graph-capstone-webhook-v2",
+        "schema_version": "graph_schema_v1",
+        "artifact_digests": {
+          "data/capstone/graph_annotations_v1.json": "sha256:218e2b56e32db5e3599f9e11749287250945d40f3d9686562ba6209248a36ab8"
+        }
+      },
+      "service": {
+        "release_id": "service-solution-card-v1",
+        "components": [
+          "rag_api",
+          "copilot_api",
+          "copilot_console"
+        ],
+        "feature_flags": {
+          "solution_card": true
+        },
+        "artifact_digests": {
+          "contracts/product/solution_card.schema.json": "sha256:5a941d86c1c169da5ac8ece59ee3208becb21cc193e5a36549a6efd8bfd1148f",
+          "infra/migrations/016_final_capstone_solution_card.sql": "sha256:5917fd393e5fae1f39513ee726f9c31c63a705ee120532be983b83968492f8e6",
+          "services/rag_api/app/solution_card.py": "sha256:a0c1cf349e6b2a0ae1a02f73d4cfba0d1986839fac7dde6bea33ffc9fb23afb2",
+          "services/rag_api/app/routers/rag.py": "sha256:c51e7dc8f0af0707fff9e3b8c5e25e92a2063131957d91a2a4c2bfaaaeccf8ec",
+          "services/copilot_api/app/main.py": "sha256:0515258d64b58e3f1b967111a46cb7fdc21aba431afc96c812a6b9de5a861e94",
+          "apps/copilot_console/app.js": "sha256:2fad6138428690c1794553dd356a0b6544051dc464216bf4a385209de6c66561"
+        }
+      }
+    },
+    "quality": {
+      "eval": {
+        "run_id": "eval-final-capstone-candidate-fixed",
+        "gate_status": "pass",
+        "report_path": "assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json",
+        "artifact_digests": {
+          "assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json": "sha256:fc16030318360d9b282f1fc5bf9129b87e70aaa8f718039228cab5b2bbdc23ff",
+          "assignments/final_capstone/yangong/reports/raw/e2e-candidate.json": "sha256:16663779531caef5c3412115888ffc2125104cfdedd956f95bb152298e1a2fdc",
+          "assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json": "sha256:16103fed32222a000d3095a266aed0e373f558f3c6189b1285dc718887db2058"
+        }
+      }
+    },
+    "business_slo": {
+      "policy_id": "week12-slo-v1",
+      "status": "pass",
+      "artifact_digests": {
+        "observability/slo/week12_slo.yaml": "sha256:49c4b2356e7cd56bd715826e9f924c8c851993d8ccbb5ecd3ab829d40f59472d"
+      }
+    },
+    "rollout": {
+      "stages": [
+        {
+          "traffic_percent": 5,
+          "min_samples": 8,
+          "min_observation_minutes": 1,
+          "gates": [
+            {
+              "metric": "key_point_pass_rate",
+              "operator": ">=",
+              "threshold": 0.8
+            }
+          ],
+          "baseline_guards": [
+            {
+              "metric": "unsafe_action_bypass_count",
+              "operator": "<=",
+              "threshold": 0
+            }
+          ]
+        },
+        {
+          "traffic_percent": 25,
+          "min_samples": 8,
+          "min_observation_minutes": 1,
+          "gates": [
+            {
+              "metric": "citation_support_proxy_rate",
+              "operator": ">=",
+              "threshold": 1.0
+            }
+          ],
+          "baseline_guards": [
+            {
+              "metric": "unsafe_action_bypass_count",
+              "operator": "<=",
+              "threshold": 0
+            }
+          ]
+        },
+        {
+          "traffic_percent": 50,
+          "min_samples": 8,
+          "min_observation_minutes": 1,
+          "gates": [
+            {
+              "metric": "key_point_pass_rate",
+              "operator": ">=",
+              "threshold": 0.8
+            }
+          ],
+          "baseline_guards": [
+            {
+              "metric": "unsafe_action_bypass_count",
+              "operator": "<=",
+              "threshold": 0
+            }
+          ]
+        },
+        {
+          "traffic_percent": 100,
+          "min_samples": 8,
+          "min_observation_minutes": 1,
+          "gates": [
+            {
+              "metric": "key_point_pass_rate",
+              "operator": ">=",
+              "threshold": 0.8
+            }
+          ],
+          "baseline_guards": [
+            {
+              "metric": "unsafe_action_bypass_count",
+              "operator": "<=",
+              "threshold": 0
+            }
+          ]
+        }
+      ],
+      "red_lines": [
+        {
+          "metric": "unsafe_action_bypass_count",
+          "operator": ">",
+          "threshold": 0
+        }
+      ]
+    },
+    "governance": {
+      "change_ticket": "CHG-FINAL-CAPSTONE-WEBHOOK",
+      "data_classification": "internal",
+      "required_approvals": [
+        "release_owner",
+        "service_owner"
+      ]
+    }
+  },
+  "integrity": {
+    "manifest_digest": "sha256:c190567b2c60b39f0b6fa1adf051f749829449dafa4bcec240175802cd82b2bd",
+    "signature": {
+      "algorithm": "none",
+      "key_id": null,
+      "value": null
+    }
+  }
+}

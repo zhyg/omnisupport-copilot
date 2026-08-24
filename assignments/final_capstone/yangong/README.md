@@ -2,11 +2,11 @@
 
 ```yaml
 baseline_commit: 1473db6dfa785487e1a0f87bb97bdfec6719725c
-candidate_commit: deade0bdf068f75405904e995deb7f6c0b3d829b
-candidate_worktree: implementation committed; evidence metadata updated in a follow-up commit
+candidate_commit: 6eed8cf202c3c90ca593dbb1260039060919a0fb
+candidate_worktree: implementation committed; evidence metadata updated in follow-up commits
 theme: webhook-troubleshooting
 provider/model: siliconflow / Qwen/Qwen3.5-27B; embedding Qwen/Qwen3-Embedding-4B; rerank Pro/BAAI/bge-reranker-v2-m3
-release_id: omni-dev-v2026.08.23-002 (rolled back to omni-dev-v2026.08.23-001)
+release_id: omni-dev-v2026.08.24-003（C8 回滚到 001 后已恢复候选）
 golden_set: 8 cases, 8 passed
 hard_gates: G1..G6 pass
 capstone_e2e: pass
@@ -22,50 +22,50 @@ known_limitations:
 ## 前置条件与配置
 
 - Docker Compose；首次构建 Devbox 建议预留 20 GB。
-- 仓库根目录的 `llm.txt`，仅用于本地读取 SiliconFlow 密钥，已被 `.gitignore` 排除。
+- 在 `infra/env/.env.local` 配置 SiliconFlow 密钥和模型变量；该文件被 `.gitignore` 排除。
 - 不把密钥复制进 `.env.example`、报告、Trace 或命令输出。
 
-从仓库根目录加载本地密钥和候选版本变量：
+`infra/env/.env.local` 至少包含以下非密钥配置；三个 API Key 变量填写同一个 SiliconFlow Key：
 
 ```bash
-export SILICONFLOW_API_KEY="$(awk '/api-key/{print $2}' llm.txt)"
-export EMBEDDING_API_KEY="$SILICONFLOW_API_KEY"
-export RERANK_API_KEY="$SILICONFLOW_API_KEY"
-export LLM_PROVIDER=siliconflow
-export LLM_MODEL='Qwen/Qwen3.5-27B'
-export LLM_BASE_URL='https://api.siliconflow.cn/v1'
-export LLM_TIMEOUT_SECONDS=25
-export LLM_MAX_RETRIES=0
-export QUERY_REWRITE_PROVIDER=siliconflow
-export QUERY_REWRITE_MODEL='Qwen/Qwen3.5-27B'
-export QUERY_REWRITE_BASE_URL='https://api.siliconflow.cn/v1'
-export EMBEDDING_PROVIDER=siliconflow
-export EMBEDDING_MODEL='Qwen/Qwen3-Embedding-4B'
-export EMBEDDING_BASE_URL='https://api.siliconflow.cn/v1'
-export EMBEDDING_DIMENSIONS=1536
-export RERANK_PROVIDER=siliconflow
-export RERANK_MODEL='Pro/BAAI/bge-reranker-v2-m3'
-export RERANK_BASE_URL='https://api.siliconflow.cn/v1'
-export CAPSTONE_RELEASE_ID='capstone-webhook-v2.0.0'
-export CAPSTONE_DATA_RELEASE_ID='data-capstone-webhook-v2'
-export CAPSTONE_INDEX_RELEASE_ID='index-capstone-qwen3-1536-v1'
-export CAPSTONE_PROMPT_RELEASE_ID='prompt-solution-card-v1'
-export CAPSTONE_GRAPH_RELEASE_ID='graph-capstone-webhook-v2'
-export CAPSTONE_AS_OF='2026-08-23T00:00:00Z'
+SILICONFLOW_API_KEY=<本地密钥>
+EMBEDDING_API_KEY=<同一个本地密钥>
+RERANK_API_KEY=<同一个本地密钥>
+LLM_PROVIDER=siliconflow
+LLM_MODEL=Qwen/Qwen3.5-27B
+LLM_BASE_URL=https://api.siliconflow.cn/v1
+EMBEDDING_PROVIDER=siliconflow
+EMBEDDING_MODEL=Qwen/Qwen3-Embedding-4B
+EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
+EMBEDDING_DIMENSIONS=1536
+RERANK_PROVIDER=siliconflow
+RERANK_MODEL=Pro/BAAI/bge-reranker-v2-m3
+RERANK_BASE_URL=https://api.siliconflow.cn/v1
+CAPSTONE_RELEASE_ID=omni-dev-v2026.08.24-003
+CAPSTONE_DATA_RELEASE_ID=data-capstone-webhook-v2
+CAPSTONE_INDEX_RELEASE_ID=index-capstone-qwen3-1536-v1
+CAPSTONE_PROMPT_RELEASE_ID=prompt-solution-card-v1
+CAPSTONE_GRAPH_RELEASE_ID=graph-capstone-webhook-v2
+CAPSTONE_AS_OF=2026-08-23T00:00:00Z
+SOLUTION_CARD_ENABLED=true
 ```
 
 ## 一键启动与验收
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d --build
-docker compose -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
-docker compose -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
-docker compose -f infra/docker-compose.yml --profile capstone run --rm \
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml up -d --build
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm capstone_bootstrap
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
   --entrypoint python capstone_bootstrap -m scripts.capstone.verify_e2e \
   --require-llm --output reports/capstone/e2e-candidate.json
-docker compose -f infra/docker-compose.yml --profile capstone run --rm \
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
   --entrypoint python capstone_bootstrap -m scripts.capstone.evaluate_solution_cards \
-  --expected-release-id capstone-webhook-v2.0.0 \
+  --expected-release-id omni-dev-v2026.08.24-003 \
+  --fault-report assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json \
+  --rollback-report assignments/final_capstone/yangong/reports/raw/e2e-post-rollback.json \
+  --rollback-manifest assignments/final_capstone/yangong/reports/releases/omni-dev-v2026.08.24-001.json \
+  --expected-rollback-release-id omni-dev-v2026.08.24-001 \
   --output reports/capstone/solution-card-eval-candidate.json
 ```
 
@@ -74,14 +74,57 @@ docker compose -f infra/docker-compose.yml --profile capstone run --rm \
 ## 测试与发布
 
 ```bash
-docker compose -f infra/docker-compose.yml --profile capstone run --rm \
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --profile capstone run --rm \
   --entrypoint pytest capstone_bootstrap tests/contract tests/integration -q
+release_output_dir=$(mktemp -d)
+python -m release.generator --spec release/specs/final_capstone_baseline.yaml \
+  --output-dir "$release_output_dir" --environment dev --created-by yangong \
+  --git-sha 1473db6dfa785487e1a0f87bb97bdfec6719725c
 python -m release.generator --spec release/specs/final_capstone_webhook.yaml \
-  --output-dir artifacts/releases --environment dev --created-by yangong \
-  --previous-manifest artifacts/releases/omni-dev-v2026.08.23-001.json
+  --output-dir "$release_output_dir" --environment dev --created-by yangong \
+  --git-sha 6eed8cf202c3c90ca593dbb1260039060919a0fb \
+  --previous-manifest "$release_output_dir"/omni-dev-*.json
 ```
 
-已生成的候选 manifest 是 [omni-dev-v2026.08.23-002.json](reports/releases/omni-dev-v2026.08.23-002.json)。注册、激活、回滚命令和实测 generation 见 [release_and_rollback.md](reports/release_and_rollback.md)。
+已生成的 baseline 和候选 manifest 分别是 [001](reports/releases/omni-dev-v2026.08.24-001.json) 与 [003](reports/releases/omni-dev-v2026.08.24-003.json)。原始报告均在 [reports/raw](reports/raw/)；注册、激活和回滚证据见 [release_and_rollback.md](reports/release_and_rollback.md)。
+
+## C7/C8 场景前置条件
+
+C7 不能用正常请求代替故障注入。以下命令把 RAG 的生成和改写端点切到本容器不可达端口，运行验证器后再恢复候选配置：
+
+```bash
+LLM_BASE_URL=http://127.0.0.1:9/v1 LLM_TIMEOUT_SECONDS=1 LLM_MAX_RETRIES=0 \
+QUERY_REWRITE_BASE_URL=http://127.0.0.1:9/v1 QUERY_REWRITE_TIMEOUT_SECONDS=1 \
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml \
+  up -d --force-recreate --no-deps rag_api
+docker compose --profile capstone --env-file infra/env/.env.local \
+  -f infra/docker-compose.yml run --rm --no-deps --entrypoint python \
+  capstone_bootstrap -m scripts.capstone.verify_e2e \
+  --scenario llm_fault --expected-generation-mode deterministic_fallback \
+  --expected-release-id omni-dev-v2026.08.24-003 \
+  --output reports/capstone/e2e-model-fault.json
+docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml \
+  up -d --force-recreate --no-deps rag_api
+```
+
+C8 必须恢复真实的旧 artifact，而不仅是修改 release 标签。先从 baseline 提交创建临时 worktree，并使用其中的 bootstrap 恢复 `data-capstone-v1/index-capstone-v1/graph-capstone-prechange-v1`；再回滚指针、设置 `SOLUTION_CARD_ENABLED=false` 并重建三个服务。验证命令为：
+
+```bash
+python -m rollout.rollback \
+  --target-release-id omni-dev-v2026.08.24-001 \
+  --current-release-id omni-dev-v2026.08.24-003 --actor yangong \
+  --reason c8_verified_prechange_rollback_final
+docker compose --profile capstone --env-file infra/env/.env.local \
+  -f infra/docker-compose.yml run --rm --no-deps --entrypoint python \
+  capstone_bootstrap -m scripts.capstone.verify_e2e \
+  --scenario release_rollback \
+  --expected-release-id omni-dev-v2026.08.24-001 \
+  --expected-generation-mode deterministic_fallback \
+  --expect-solution-card-disabled \
+  --output reports/capstone/e2e-post-rollback.json
+```
+
+完整的 worktree 恢复参数、组件计数与 generation 序列记录在 [发布与回滚报告](reports/release_and_rollback.md)。验证器会同时检查 active pointer、四项组件绑定和方案卡 feature flag；仅改变 `RELEASE_ID` 会失败。
 
 ## 故障排查
 

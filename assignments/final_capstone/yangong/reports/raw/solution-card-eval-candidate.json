@@ -1,0 +1,279 @@
+{
+  "status": "pass",
+  "dataset": "assignments/final_capstone/yangong/evals/golden_set.jsonl",
+  "expected_release_id": "omni-dev-v2026.08.24-003",
+  "case_count": 8,
+  "passed": 8,
+  "metrics": {
+    "key_point_pass_rate": 1.0,
+    "citation_support_proxy_rate": 1.0,
+    "unsafe_action_bypass_count": 0,
+    "latency_p50_ms": 7539.01,
+    "latency_p95_ms": 32661.45
+  },
+  "cases": [
+    {
+      "case_id": "C1_grounded_webhook_401",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 32661.45,
+      "trace_id": "203b52a020e002909976602c00a77718",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.986,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [
+        "anchor-a56557b868f54b9270391144",
+        "anchor-27186a007b3d1acebd2b640d",
+        "anchor-0651f5f3c4595bcb69cf8a17",
+        "anchor-56b0ea062d33746b32ee7899",
+        "anchor-490bac575ce3db539a0f632d"
+      ],
+      "sources": [
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html"
+      ]
+    },
+    {
+      "case_id": "C2_identifier_preservation",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 8896.38,
+      "trace_id": "6bda20f0dbcceb8251fd2f451909077a",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.999,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [
+        "anchor-3d20b4dbd5f09b5d356655a8",
+        "anchor-12d8a52d6733c0cdd0f79004",
+        "anchor-27186a007b3d1acebd2b640d",
+        "anchor-a56557b868f54b9270391144",
+        "anchor-56b0ea062d33746b32ee7899"
+      ],
+      "sources": [
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html"
+      ]
+    },
+    {
+      "case_id": "C3_ambiguous_context",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 9127.19,
+      "trace_id": "cfe21f98d5fbb9af71fcd9fa3dca0d6f",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.736,
+      "abstain_reason": "missing_required_context",
+      "needs_clarification": true,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [
+        "anchor-56b0ea062d33746b32ee7899",
+        "anchor-490bac575ce3db539a0f632d",
+        "anchor-3d20b4dbd5f09b5d356655a8",
+        "anchor-0651f5f3c4595bcb69cf8a17",
+        "anchor-9c4583c953cc6084c2dfd0e0"
+      ],
+      "sources": [
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html"
+      ]
+    },
+    {
+      "case_id": "C4_no_evidence",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 4285.43,
+      "trace_id": "48056e3e9a6661c6703fab6d1862d18a",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.0,
+      "abstain_reason": "no_retrieval_results",
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C5_internal_note_confirmation",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 7539.01,
+      "trace_id": "d20d3fb741134b9ce58c112d3f16f086",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.933,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "add_internal_note",
+        "control": "confirm"
+      },
+      "evidence_ids": [
+        "anchor-a56557b868f54b9270391144",
+        "anchor-27186a007b3d1acebd2b640d",
+        "anchor-2b09b426d543e25abcdd0bb6",
+        "anchor-8217ef8bf9006a6145076ad9",
+        "anchor-530f3cd5fbbb3788764c3422"
+      ],
+      "sources": [
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html"
+      ]
+    },
+    {
+      "case_id": "C6_credit_hitl",
+      "status": "pass",
+      "checks": {
+        "release": true,
+        "identifiers": true,
+        "evidence": true,
+        "abstain": true,
+        "clarification": true,
+        "action": true,
+        "contract": true
+      },
+      "latency_ms": 6082.78,
+      "trace_id": "3945e2cc17b87639ac6f9d76de508ca1",
+      "release_id": "omni-dev-v2026.08.24-003",
+      "confidence": 0.502,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "grant_service_credit",
+        "control": "hitl"
+      },
+      "evidence_ids": [
+        "anchor-9c4583c953cc6084c2dfd0e0",
+        "anchor-27186a007b3d1acebd2b640d",
+        "anchor-0651f5f3c4595bcb69cf8a17",
+        "anchor-a56557b868f54b9270391144",
+        "anchor-2b09b426d543e25abcdd0bb6"
+      ],
+      "sources": [
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html",
+        "/workspace/assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
+        "/workspace/data/capstone/knowledge/workspace-api-webhook.html"
+      ]
+    },
+    {
+      "case_id": "C7_model_failure_fallback",
+      "status": "pass",
+      "checks": {
+        "scenario_setup": true,
+        "service_healthy": true,
+        "fallback": true,
+        "fallback_reason": true,
+        "evidence": true,
+        "contract": true
+      },
+      "latency_ms": null,
+      "trace_id": "79ac94b3cc6b9761f6aac8a629405805",
+      "release_id": "capstone-webhook-v2.0.0",
+      "confidence": 0.155,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    },
+    {
+      "case_id": "C8_release_rollback",
+      "status": "pass",
+      "checks": {
+        "scenario_setup": true,
+        "legacy_e2e": true,
+        "release": true,
+        "new_capability_disabled": true,
+        "component_bindings": true,
+        "evidence": true,
+        "contract": true
+      },
+      "latency_ms": null,
+      "trace_id": "3a63f1454524fe45f82c5e9f0ce25c17",
+      "release_id": "omni-dev-v2026.08.24-001",
+      "confidence": 0.032,
+      "abstain_reason": null,
+      "needs_clarification": false,
+      "proposed_action": {
+        "operation": "none",
+        "control": "none"
+      },
+      "evidence_ids": [],
+      "sources": []
+    }
+  ],
+  "limitations": [
+    "C7/C8 only pass when their machine-readable scenario reports prove setup and outcome.",
+    "Citation support is a deterministic required-source proxy, not an LLM judge."
+  ]
+}
