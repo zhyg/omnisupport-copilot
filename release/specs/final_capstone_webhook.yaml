@@ -69,12 +69,11 @@ quality:
   eval:
     run_id: eval-final-capstone-candidate-fixed
     gate_status: pass
-    report_path: assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
+    report_path: assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json
     source_paths:
-      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
+      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-pre-release.json
       - assignments/final_capstone/yangong/reports/raw/e2e-candidate.json
       - assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json
-      - assignments/final_capstone/yangong/reports/raw/e2e-post-rollback.json
 business_slo:
   policy_id: week12-slo-v1
   status: pass

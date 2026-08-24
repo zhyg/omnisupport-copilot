@@ -135,6 +135,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cases = [case for case in cases if case["case_id"].startswith(args.case_id)]
         if not cases:
             raise ValueError(f"unknown case_id prefix: {args.case_id}")
+    if args.exclude_case_id:
+        cases = [
+            case
+            for case in cases
+            if not any(
+                case["case_id"].startswith(prefix) for prefix in args.exclude_case_id
+            )
+        ]
+        if not cases:
+            raise ValueError("case filters removed the entire Golden Set")
     results: list[dict[str, Any]] = []
     latencies: list[float] = []
     fault_report = _load_report(args.fault_report)
@@ -236,6 +246,12 @@ def main() -> int:
     parser.add_argument("--rollback-report", type=Path)
     parser.add_argument("--expected-rollback-release-id")
     parser.add_argument("--case-id", help="Run only a case-id prefix such as C4")
+    parser.add_argument(
+        "--exclude-case-id",
+        action="append",
+        default=[],
+        help="Exclude a case-id prefix; repeat for multiple cases",
+    )
     parser.add_argument("--agent-email", default="agent@northstar.demo")
     parser.add_argument("--agent-password", default="Agent@2026")
     parser.add_argument("--timeout", type=float, default=120.0)
