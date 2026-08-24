@@ -2,7 +2,7 @@
 
 ```yaml
 baseline_commit: 1473db6dfa785487e1a0f87bb97bdfec6719725c
-candidate_commit: 76c9f11dcd99db63ba6c0aefd495da523820b0fe
+candidate_commit: deade0bdf068f75405904e995deb7f6c0b3d829b
 candidate_worktree: implementation committed; evidence metadata updated in a follow-up commit
 theme: webhook-troubleshooting
 provider/model: siliconflow / Qwen/Qwen3.5-27B; embedding Qwen/Qwen3-Embedding-4B; rerank Pro/BAAI/bge-reranker-v2-m3

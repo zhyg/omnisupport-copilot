@@ -2,7 +2,7 @@
 
 ```yaml
 release_id: omni-dev-v2026.08.23-002
-implementation_commit: 76c9f11dcd99db63ba6c0aefd495da523820b0fe
+implementation_commit: deade0bdf068f75405904e995deb7f6c0b3d829b
 data_release_id: data-capstone-webhook-v2
 index_release_id: index-capstone-qwen3-1536-v1
 prompt_release_id: prompt-solution-card-v1

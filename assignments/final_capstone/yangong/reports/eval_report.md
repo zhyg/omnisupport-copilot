@@ -6,7 +6,7 @@ baseline: omni-dev-v2026.08.23-001 / deterministic generation fallback
 candidate: omni-dev-v2026.08.23-002 / siliconflow Qwen/Qwen3.5-27B
 data: data-capstone-webhook-v2
 index: index-capstone-qwen3-1536-v1
-commit: 76c9f11dcd99db63ba6c0aefd495da523820b0fe
+commit: deade0bdf068f75405904e995deb7f6c0b3d829b
 ```
 
 ## 指标与门槛
