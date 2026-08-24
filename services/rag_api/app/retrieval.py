@@ -16,6 +16,7 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Sequence
+from urllib.parse import urlparse
 
 import httpx
 
@@ -385,6 +386,26 @@ def reciprocal_rank_fusion(
 
 # ── Governed remote rerank ────────────────────────────────────────────────────
 
+def _is_siliconflow_rerank_url(base_url: str) -> bool:
+    parsed = urlparse(base_url)
+    return parsed.scheme == "https" and (
+        parsed.hostname == "siliconflow.cn"
+        or bool(parsed.hostname and parsed.hostname.endswith(".siliconflow.cn"))
+    )
+
+
+def _rerank_api_key() -> str:
+    """Resolve only an explicitly scoped or endpoint-matched credential."""
+
+    if settings.rerank_api_key:
+        return settings.rerank_api_key
+    if (
+        settings.rerank_provider in {"auto", "siliconflow"}
+        and _is_siliconflow_rerank_url(settings.rerank_base_url)
+    ):
+        return settings.siliconflow_api_key
+    return ""
+
 class RemoteReranker:
     """SiliconFlow-compatible reranker with bounded inputs and RRF fallback."""
 
@@ -402,12 +423,7 @@ class RemoteReranker:
         self, query: str, results: list[RetrievalResult]
     ) -> tuple[list[RetrievalResult], str | None, float]:
         started = time.perf_counter()
-        api_key = (
-            settings.rerank_api_key
-            or settings.openai_api_key
-            or settings.siliconflow_api_key
-            or os.environ.get("SILICONFLOW_API_KEY", "")
-        )
+        api_key = _rerank_api_key()
         fallback_reason = None
         if settings.rerank_provider == "disabled":
             fallback_reason = "rerank_disabled"

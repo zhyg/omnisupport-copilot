@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     graph_classifier_threshold: float = 0.70
     graph_max_hops: int = 3
     graph_default_visibility_scope: str = "internal"
+    solution_card_enabled: bool = True
 
     # ── Query Rewrite ────────────────────────────────────────────────────────
     # auto: configured LLM with deterministic validation/fallback; otherwise

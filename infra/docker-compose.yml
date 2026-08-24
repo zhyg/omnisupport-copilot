@@ -200,6 +200,7 @@ services:
       PROMPT_RELEASE_ID: ${CAPSTONE_PROMPT_RELEASE_ID:-prompt-capstone-v1}
       GRAPH_RELEASE_ID: ${CAPSTONE_GRAPH_RELEASE_ID:-graph-capstone-v1}
       RETRIEVAL_MIN_SCORE: ${RETRIEVAL_MIN_SCORE:-0.015}
+      SOLUTION_CARD_ENABLED: ${SOLUTION_CARD_ENABLED:-true}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-deterministic}
       PYTHONPATH: /app:/workspace
     ports:
@@ -299,6 +300,7 @@ services:
       RELEASE_ENVIRONMENT: ${CAPSTONE_RELEASE_ENVIRONMENT:-dev}
       DATA_RELEASE_ID: ${CAPSTONE_DATA_RELEASE_ID:-data-capstone-v1}
       PROMPT_RELEASE_ID: ${CAPSTONE_PROMPT_RELEASE_ID:-prompt-capstone-v1}
+      SOLUTION_CARD_ENABLED: ${SOLUTION_CARD_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel_collector:4318
       OTEL_SERVICE_NAME: copilot_api
       OTEL_PROJECT_NAME: ${OTEL_PROJECT_NAME:-omnisupport-copilot}

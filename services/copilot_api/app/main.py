@@ -375,6 +375,9 @@ async def create_solution_card(
 ) -> SolutionCardResponse:
     """Generate and persist an advisory card; never execute the proposed action."""
 
+    if not settings.solution_card_enabled:
+        raise HTTPException(status_code=404, detail="solution_card_disabled")
+
     case = await _case_row(ticket_id, principal)
     started = time.perf_counter()
     rag_payload = {
@@ -676,6 +679,7 @@ async def ask_copilot(
     )
     result = _record(dict(row))
     if payload.include_debug:
+        result["generation_fallback_reason"] = answer.get("generation_fallback_reason")
         result["retrieval_debug"] = answer.get("retrieval_debug")
         result["graph_debug"] = answer.get("graph_debug")
     return result
@@ -928,9 +932,10 @@ async def operations_overview(principal: Principal = Depends(current_principal))
               COUNT(*) FILTER (WHERE status::text NOT IN ('resolved','closed')) AS open_cases,
               COUNT(*) FILTER (WHERE priority::text = 'p1_critical' AND status::text NOT IN ('resolved','closed')) AS p1_open,
               COUNT(*) FILTER (WHERE sla_due_at < NOW() AND status::text NOT IN ('resolved','closed')) AS sla_breached
-            FROM ticket_fact WHERE tenant_id = $1
+            FROM ticket_fact WHERE tenant_id = $1 AND data_release_id = $2
             """,
             principal.tenant_id,
+            settings.data_release_id,
         )
         quality = await conn.fetchrow(
             """
@@ -948,9 +953,10 @@ async def operations_overview(principal: Principal = Depends(current_principal))
         data_window = await conn.fetchrow(
             """
             SELECT MIN(created_at::date) AS date_from, MAX(created_at::date) AS date_to
-            FROM ticket_fact WHERE tenant_id = $1
+            FROM ticket_fact WHERE tenant_id = $1 AND data_release_id = $2
             """,
             principal.tenant_id,
+            settings.data_release_id,
         )
         release = await conn.fetchrow(
             """

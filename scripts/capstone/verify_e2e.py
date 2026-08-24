@@ -73,13 +73,23 @@ def _select_workspace_case(client: httpx.Client, token: str) -> dict[str, Any]:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     run_id = uuid.uuid4().hex[:12]
-    report: dict[str, Any] = {"status": "running", "run_id": run_id, "checks": {}}
+    report: dict[str, Any] = {
+        "status": "running",
+        "run_id": run_id,
+        "scenario": args.scenario,
+        "checks": {},
+    }
     with httpx.Client(base_url=args.base_url.rstrip("/"), timeout=60.0) as client:
         live = client.get("/live")
         live.raise_for_status()
         ready = client.get("/health")
         ready.raise_for_status()
         _check(ready.json()["status"] == "ok", "product dependencies are degraded")
+        if args.expected_release_id:
+            _check(
+                ready.json()["release_id"] == args.expected_release_id,
+                "runtime release does not match the expected release",
+            )
         report["checks"]["runtime"] = ready.json()
 
         agent_token, agent = _login(client, args.agent_email, args.agent_password)
@@ -120,6 +130,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check(answer["evidence_ids"], "RAG answer has no evidence")
         if args.require_llm:
             _check(answer.get("generation_mode") == "llm", "answer used deterministic fallback")
+        if args.expected_generation_mode:
+            _check(
+                answer.get("generation_mode") == args.expected_generation_mode,
+                "answer generation mode does not match the injected scenario",
+            )
         _check(
             any("workspace-api-webhook" in str(item.get("source_url", "")) for item in answer["citations"]),
             "RAG did not retrieve the capstone webhook source",
@@ -133,49 +148,68 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "generation_mode": answer.get("generation_mode"),
             "generation_provider": answer.get("generation_provider"),
             "generation_model": answer.get("generation_model"),
+            "generation_fallback_reason": answer.get("generation_fallback_reason"),
         }
-        card_response = _request(
-            client,
-            agent_token,
-            "POST",
-            f"/api/v1/cases/{case['ticket_id']}/solution-card",
-            json={
-                "question": (
-                    "Workspace 4.2 的 Webhook 返回 HTTP 401 和 "
-                    "WS-WEBHOOK-401，应该如何排查？"
-                ),
-                "retrieval_mode": "hybrid",
-            },
-        )
-        card = card_response.json()
-        expected_card_fields = {
-            "summary",
-            "steps",
-            "citations",
-            "confidence",
-            "needs_clarification",
-            "abstain_reason",
-            "proposed_action",
-            "release_id",
-            "trace_id",
+        card_path = f"/api/v1/cases/{case['ticket_id']}/solution-card"
+        card_request = {
+            "question": (
+                "Workspace 4.2 的 Webhook 返回 HTTP 401 和 "
+                "WS-WEBHOOK-401，应该如何排查？"
+            ),
+            "retrieval_mode": "hybrid",
         }
-        _check(set(card) == expected_card_fields, "solution card contract fields changed")
-        _check(len(card["steps"]) <= 3, "solution card returned more than three steps")
-        _check(card["citations"], "solution card has no evidence")
-        _check(not card["needs_clarification"], "precise solution-card query was marked ambiguous")
-        _check(card["abstain_reason"] is None, "grounded solution card abstained")
-        _check(
-            card["proposed_action"] == {"operation": "none", "control": "none"},
-            "solution card proposed an uncontrolled action",
-        )
-        report["checks"]["solution_card"] = {
-            "trace_id": card["trace_id"],
-            "release_id": card["release_id"],
-            "confidence": card["confidence"],
-            "step_count": len(card["steps"]),
-            "evidence_ids": [item["evidence_id"] for item in card["citations"]],
-            "response_fields": sorted(card),
-        }
+        if args.expect_solution_card_disabled:
+            card_response = client.post(
+                card_path,
+                headers={"Authorization": f"Bearer {agent_token}"},
+                json=card_request,
+            )
+            _check(card_response.status_code == 404, "rollback left solution-card enabled")
+            _check(
+                card_response.json().get("detail") == "solution_card_disabled",
+                "solution-card failed for a reason other than the rollback feature gate",
+            )
+            report["checks"]["solution_card_disabled"] = {
+                "status_code": card_response.status_code,
+                "detail": card_response.json()["detail"],
+            }
+        else:
+            card_response = _request(
+                client,
+                agent_token,
+                "POST",
+                card_path,
+                json=card_request,
+            )
+            card = card_response.json()
+            expected_card_fields = {
+                "summary",
+                "steps",
+                "citations",
+                "confidence",
+                "needs_clarification",
+                "abstain_reason",
+                "proposed_action",
+                "release_id",
+                "trace_id",
+            }
+            _check(set(card) == expected_card_fields, "solution card contract fields changed")
+            _check(len(card["steps"]) <= 3, "solution card returned more than three steps")
+            _check(card["citations"], "solution card has no evidence")
+            _check(not card["needs_clarification"], "precise solution-card query was marked ambiguous")
+            _check(card["abstain_reason"] is None, "grounded solution card abstained")
+            _check(
+                card["proposed_action"] == {"operation": "none", "control": "none"},
+                "solution card proposed an uncontrolled action",
+            )
+            report["checks"]["solution_card"] = {
+                "trace_id": card["trace_id"],
+                "release_id": card["release_id"],
+                "confidence": card["confidence"],
+                "step_count": len(card["steps"]),
+                "evidence_ids": [item["evidence_id"] for item in card["citations"]],
+                "response_fields": sorted(card),
+            }
         _request(
             client,
             agent_token,
@@ -186,6 +220,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         report["checks"]["feedback"] = {"status": "persisted"}
 
         overview = _request(client, agent_token, "GET", "/api/v1/operations/overview").json()
+        if args.expected_release_id:
+            _check(
+                overview.get("release", {}).get("release_id") == args.expected_release_id,
+                "active release pointer does not match the expected release",
+            )
+        report["checks"]["release_pointer"] = overview.get("release")
         date_to = date.fromisoformat(overview["data_window"]["date_to"])
         available_from = date.fromisoformat(overview["data_window"]["date_from"])
         date_from = max(available_from, date_to - timedelta(days=30))
@@ -265,17 +305,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             trace_id=report["checks"]["rag"]["trace_id"],
             required={"product.copilot.answer", "rag.query", "rag.retrieve.hybrid", "rag.audit.persist"},
         )
-        report["checks"]["phoenix_solution_card"] = _trace_has(
-            base_url=args.phoenix_url,
-            project=args.phoenix_project,
-            trace_id=report["checks"]["solution_card"]["trace_id"],
-            required={
-                "product.solution_card",
-                "rag.solution_card",
-                "rag.query",
-                "rag.retrieve.hybrid",
-            },
-        )
+        if not args.expect_solution_card_disabled:
+            report["checks"]["phoenix_solution_card"] = _trace_has(
+                base_url=args.phoenix_url,
+                project=args.phoenix_project,
+                trace_id=report["checks"]["solution_card"]["trace_id"],
+                required={
+                    "product.solution_card",
+                    "rag.solution_card",
+                    "rag.query",
+                    "rag.retrieve.hybrid",
+                },
+            )
         report["checks"]["phoenix_hitl_wait"] = _trace_has(
             base_url=args.phoenix_url,
             project=args.phoenix_project,
@@ -305,12 +346,34 @@ def main() -> int:
     parser.add_argument("--output", default="reports/capstone/e2e-verification.json")
     parser.add_argument("--skip-phoenix", action="store_true")
     parser.add_argument(
+        "--scenario",
+        choices=("standard", "baseline_legacy", "llm_fault", "release_rollback"),
+        default="standard",
+    )
+    parser.add_argument("--expected-release-id")
+    parser.add_argument(
+        "--expected-generation-mode",
+        choices=("llm", "deterministic_fallback"),
+    )
+    parser.add_argument("--expect-solution-card-disabled", action="store_true")
+    parser.add_argument(
         "--require-llm",
         action="store_true",
         help="Fail unless the product answer was generated by a configured LLM provider",
     )
     args = parser.parse_args()
     try:
+        if args.scenario == "llm_fault":
+            _check(
+                args.expected_generation_mode == "deterministic_fallback",
+                "llm_fault requires --expected-generation-mode deterministic_fallback",
+            )
+        if args.scenario in {"baseline_legacy", "release_rollback"}:
+            _check(bool(args.expected_release_id), "release_rollback requires --expected-release-id")
+            _check(
+                args.expect_solution_card_disabled,
+                f"{args.scenario} requires --expect-solution-card-disabled",
+            )
         report = run(args)
     except Exception as exc:
         report = {"status": "fail", "error": str(exc), "error_type": type(exc).__name__}

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal, cast
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.audit import Timer, write_rag_audit_log
 from app.config import settings
@@ -50,6 +50,9 @@ async def solution_card(
     principal: InternalPrincipal = Depends(require_internal_request),
 ) -> SolutionCardResponse:
     """Reuse the production RAG chain, then constrain output to the card schema."""
+
+    if not settings.solution_card_enabled:
+        raise HTTPException(status_code=404, detail="solution_card_disabled")
 
     with traced_span(
         "rag.solution_card",
@@ -464,6 +467,15 @@ async def rag_answer(
             ),
             generation_provider=str(generation["provider"]),
             generation_model=str(generation["model"]),
+            generation_fallback_reason=cast(
+                str | None,
+                generation.get("fallback_reason")
+                or (
+                    f"llm_error:{generation['error_type']}"
+                    if generation.get("error_type")
+                    else None
+                ),
+            ),
             trace_id=trace_id,
             retrieved_contexts=retrieved_contexts,
             retrieval_debug=debug,
@@ -513,12 +525,14 @@ def _debug_payload(chunks, filters: dict, *, mode: str) -> RetrievalDebugPayload
         rrf_k=60,
         rerank_enabled=settings.rerank_enabled,
         rerank_fallback=settings.rerank_enabled and not has_rerank,
-        rerank_provider=rerank_item.rerank_provider if rerank_item else "none",
-        rerank_model=rerank_item.rerank_model if rerank_item else "none",
+        rerank_provider=getattr(rerank_item, "rerank_provider", "none"),
+        rerank_model=getattr(rerank_item, "rerank_model", "none"),
         rerank_fallback_reason=(
-            rerank_item.rerank_fallback_reason if rerank_item else "no_candidates"
+            getattr(rerank_item, "rerank_fallback_reason", None)
+            if rerank_item
+            else "no_candidates"
         ),
-        rerank_latency_ms=rerank_item.rerank_latency_ms if rerank_item else 0.0,
+        rerank_latency_ms=getattr(rerank_item, "rerank_latency_ms", 0.0),
         filters_applied={key: value for key, value in filters.items() if value is not None},
         results=[
             RetrievalDebugItem(

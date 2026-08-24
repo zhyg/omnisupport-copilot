@@ -24,6 +24,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
+from urllib.parse import urlparse
 
 from pipelines.indexing.index_manifest import build_manifest
 from pipelines.indexing.reporting import write_index_build_outputs
@@ -31,6 +32,58 @@ from pipelines.indexing.reporting import write_index_build_outputs
 logger = logging.getLogger(__name__)
 
 EMBEDDING_DIM = 1536   # text-embedding-3-small / voyage-2 default
+SILICONFLOW_BASE_URL = "https://api.siliconflow.cn/v1"
+
+
+def _is_siliconflow_url(base_url: str | None) -> bool:
+    """Return true only for SiliconFlow's HTTPS API host."""
+
+    if not base_url:
+        return False
+    parsed = urlparse(base_url)
+    return parsed.scheme == "https" and (
+        parsed.hostname == "siliconflow.cn"
+        or bool(parsed.hostname and parsed.hostname.endswith(".siliconflow.cn"))
+    )
+
+
+def _is_openai_url(base_url: str | None) -> bool:
+    if not base_url:
+        return True
+    parsed = urlparse(base_url)
+    return parsed.scheme == "https" and parsed.hostname == "api.openai.com"
+
+
+def _embedding_base_url(provider: str) -> str | None:
+    configured = os.environ.get("EMBEDDING_BASE_URL", "").strip()
+    if configured:
+        return configured
+    if provider == "siliconflow":
+        return SILICONFLOW_BASE_URL
+    return None
+
+
+def _embedding_api_key(provider: str, base_url: str | None) -> str:
+    """Resolve credentials without crossing provider trust boundaries.
+
+    A capability-specific key is an explicit opt-in for a custom gateway. Shared
+    provider keys are used only when both the declared provider and endpoint are
+    known to match that provider.
+    """
+
+    explicit = os.environ.get("EMBEDDING_API_KEY", "").strip()
+    if explicit:
+        return explicit
+    if provider == "siliconflow" and _is_siliconflow_url(base_url):
+        return os.environ.get("SILICONFLOW_API_KEY", "").strip()
+    if provider == "openai" and _is_openai_url(base_url):
+        return os.environ.get("OPENAI_API_KEY", "").strip()
+    if provider == "auto":
+        if _is_siliconflow_url(base_url):
+            return os.environ.get("SILICONFLOW_API_KEY", "").strip()
+        if _is_openai_url(base_url):
+            return os.environ.get("OPENAI_API_KEY", "").strip()
+    return ""
 
 
 async def ensure_week08_index_schema(conn) -> None:
@@ -203,15 +256,11 @@ class EmbeddingProvider:
 
     def _init_openai(self, model: str):
         try:
-            api_key = (
-                os.environ.get("EMBEDDING_API_KEY")
-                or os.environ.get("SILICONFLOW_API_KEY")
-                or os.environ.get("OPENAI_API_KEY")
-            )
+            base_url = _embedding_base_url(self._provider)
+            api_key = _embedding_api_key(self._provider, base_url)
             if not api_key:
                 return None
             from openai import OpenAI
-            base_url = os.environ.get("EMBEDDING_BASE_URL") or None
             client = OpenAI(api_key=api_key, base_url=base_url)
             logger.info(
                 "Using OpenAI-compatible embeddings (%s, dim=%s)",

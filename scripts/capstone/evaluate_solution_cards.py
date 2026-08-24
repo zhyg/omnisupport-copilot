@@ -49,6 +49,82 @@ def _evidence_slug(value: str) -> str:
     return value.rsplit(":", 1)[-1]
 
 
+def _load_report(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _scenario_result(
+    case: dict[str, Any],
+    *,
+    fault_report: dict[str, Any] | None,
+    rollback_report: dict[str, Any] | None,
+    expected_rollback_release_id: str | None,
+) -> dict[str, Any] | None:
+    if case.get("fault_injection"):
+        report = fault_report or {}
+        checks = report.get("checks", {})
+        rag = checks.get("rag", {})
+        validation = {
+            "scenario_setup": report.get("scenario") == "llm_fault",
+            "service_healthy": report.get("status") == "pass"
+            and checks.get("runtime", {}).get("status") == "ok",
+            "fallback": rag.get("generation_mode") == "deterministic_fallback",
+            "fallback_reason": bool(rag.get("generation_fallback_reason")),
+            "evidence": int(rag.get("evidence_count", 0)) > 0,
+            "contract": bool(rag.get("trace_id")),
+        }
+        return {
+            "case_id": case["case_id"],
+            "status": "pass" if all(validation.values()) else "not_run",
+            "checks": validation,
+            "latency_ms": None,
+            "trace_id": rag.get("trace_id"),
+            "release_id": rag.get("release_id"),
+            "confidence": rag.get("confidence"),
+            "abstain_reason": None,
+            "needs_clarification": False,
+            "proposed_action": {"operation": "none", "control": "none"},
+            "evidence_ids": [],
+            "sources": [],
+        }
+    if case.get("requires_release_rollback"):
+        report = rollback_report or {}
+        checks = report.get("checks", {})
+        runtime = checks.get("runtime", {})
+        rag = checks.get("rag", {})
+        disabled = checks.get("solution_card_disabled", {})
+        pointer = checks.get("release_pointer", {}) or {}
+        validation = {
+            "scenario_setup": report.get("scenario") == "release_rollback",
+            "legacy_e2e": report.get("status") == "pass" and runtime.get("status") == "ok",
+            "release": bool(expected_rollback_release_id)
+            and runtime.get("release_id") == expected_rollback_release_id
+            and rag.get("release_id") == expected_rollback_release_id
+            and pointer.get("release_id") == expected_rollback_release_id,
+            "new_capability_disabled": disabled
+            == {"status_code": 404, "detail": "solution_card_disabled"},
+            "evidence": int(rag.get("evidence_count", 0)) > 0,
+            "contract": bool(rag.get("trace_id")),
+        }
+        return {
+            "case_id": case["case_id"],
+            "status": "pass" if all(validation.values()) else "not_run",
+            "checks": validation,
+            "latency_ms": None,
+            "trace_id": rag.get("trace_id"),
+            "release_id": rag.get("release_id"),
+            "confidence": rag.get("confidence"),
+            "abstain_reason": None,
+            "needs_clarification": False,
+            "proposed_action": {"operation": "none", "control": "none"},
+            "evidence_ids": [],
+            "sources": [],
+        }
+    return None
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     cases = [
         json.loads(line)
@@ -61,10 +137,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError(f"unknown case_id prefix: {args.case_id}")
     results: list[dict[str, Any]] = []
     latencies: list[float] = []
+    fault_report = _load_report(args.fault_report)
+    rollback_report = _load_report(args.rollback_report)
     with httpx.Client(base_url=args.base_url.rstrip("/"), timeout=args.timeout) as client:
         token = _login(client, args.agent_email, args.agent_password)
         ticket_id = _workspace_case(client, token)
         for case in cases:
+            scenario = _scenario_result(
+                case,
+                fault_report=fault_report,
+                rollback_report=rollback_report,
+                expected_rollback_release_id=args.expected_rollback_release_id,
+            )
+            if scenario is not None:
+                results.append(scenario)
+                continue
             started = time.perf_counter()
             response = _request(
                 client,
@@ -125,13 +212,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 and item["proposed_action"]["operation"] != "none"
                 for item in results
             ),
-            "latency_p50_ms": _percentile(latencies, 0.50),
-            "latency_p95_ms": _percentile(latencies, 0.95),
+            "latency_p50_ms": _percentile(latencies, 0.50) if latencies else None,
+            "latency_p95_ms": _percentile(latencies, 0.95) if latencies else None,
         },
         "cases": results,
         "limitations": [
-            "C7 fault injection is evidenced by the separate degraded-mode E2E report.",
-            "C8 release rollback is evidenced by the release report and post-rollback E2E.",
+            "C7/C8 only pass when their machine-readable scenario reports prove setup and outcome.",
             "Citation support is a deterministic required-source proxy, not an LLM judge.",
         ],
     }
@@ -146,6 +232,9 @@ def main() -> int:
         default=Path("assignments/final_capstone/yangong/evals/golden_set.jsonl"),
     )
     parser.add_argument("--expected-release-id", required=True)
+    parser.add_argument("--fault-report", type=Path)
+    parser.add_argument("--rollback-report", type=Path)
+    parser.add_argument("--expected-rollback-release-id")
     parser.add_argument("--case-id", help="Run only a case-id prefix such as C4")
     parser.add_argument("--agent-email", default="agent@northstar.demo")
     parser.add_argument("--agent-password", default="Agent@2026")

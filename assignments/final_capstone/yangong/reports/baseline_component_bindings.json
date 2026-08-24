@@ -1,0 +1,49 @@
+{
+  "schema_version": "capstone_baseline_bindings_v1",
+  "source_commit": "1473db6dfa785487e1a0f87bb97bdfec6719725c",
+  "release_id": "capstone-prechange-v1.0.0",
+  "components": {
+    "data": {
+      "release_id": "data-capstone-v1"
+    },
+    "index": {
+      "release_id": "index-capstone-v1",
+      "data_release_id": "data-capstone-v1",
+      "embedding_model": "deterministic-hash-embedding-v1@1536"
+    },
+    "prompt": {
+      "release_id": "prompt-capstone-v1",
+      "templates": ["answer_v1", "no_answer_v1"]
+    },
+    "model": {
+      "release_id": "model-deterministic-fallback-v1",
+      "provider": "fallback",
+      "model_id": "deterministic-grounded-template-v1"
+    },
+    "skills": {
+      "release_id": "skills-capstone-existing-v1"
+    },
+    "graph": {
+      "release_id": "graph-capstone-prechange-v1"
+    },
+    "service": {
+      "release_id": "service-capstone-v1",
+      "components": ["rag_api", "tool_api", "copilot_api", "copilot_console"],
+      "feature_flags": {
+        "solution_card": false
+      }
+    }
+  },
+  "rollback_runtime": {
+    "CAPSTONE_RELEASE_ID": "capstone-prechange-v1.0.0",
+    "CAPSTONE_DATA_RELEASE_ID": "data-capstone-v1",
+    "CAPSTONE_INDEX_RELEASE_ID": "index-capstone-v1",
+    "CAPSTONE_PROMPT_RELEASE_ID": "prompt-capstone-v1",
+    "CAPSTONE_GRAPH_RELEASE_ID": "graph-capstone-prechange-v1",
+    "EMBEDDING_PROVIDER": "auto",
+    "EMBEDDING_MODEL": "deterministic",
+    "RERANK_PROVIDER": "disabled",
+    "QUERY_REWRITE_STRATEGY": "deterministic",
+    "SOLUTION_CARD_ENABLED": false
+  }
+}

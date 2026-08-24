@@ -216,6 +216,7 @@ class RagAnswerResponse(BaseModel):
     generation_mode: Literal["llm", "deterministic_fallback", "not_invoked"]
     generation_provider: str
     generation_model: str
+    generation_fallback_reason: Optional[str] = None
     trace_id: str
     retrieved_contexts: Optional[List[RetrievalContext]] = None
     retrieval_debug: Optional[RetrievalDebugPayload] = None

@@ -6,39 +6,33 @@
   "source_type": "help_center",
   "product_line": "northstar_workspace",
   "license_tag": "course_synthetic",
+  "contract_ref": "omni://contracts/data/doc_asset/v1",
   "load_mode": "full_snapshot",
   "canonization_status": "canonized",
   "created_at": "2026-08-23T00:00:00Z",
   "owner": "yangong",
-  "pii_policy": {
-    "classification": "none",
-    "scan_status": "clear",
-    "external_model_allowed": true
-  },
   "assets": [
     {
       "source_id": "doc:capstone:webhook-signature-rotation",
       "source_url_or_path": "assignments/final_capstone/yangong/data/webhook-signature-rotation.html",
       "asset_type": "html",
-      "doc_version": "1.0",
-      "applies_to": ["northstar_workspace:3.2", "northstar_workspace:4.2"],
       "size_bytes": 1452,
       "checksum_sha256": "5d343fe15ac853c2299bbc3fd838e06336ea9db929cffd5c129c93e35f89a966",
       "metadata_status": "complete",
       "pii_scan_status": "clear",
-      "language": "zh-CN"
+      "language": "zh-CN",
+      "notes": "文档版本 1.0；适用于 northstar_workspace 3.2 与 4.2。"
     },
     {
       "source_id": "doc:capstone:webhook-retry-idempotency",
       "source_url_or_path": "assignments/final_capstone/yangong/data/webhook-retry-idempotency.html",
       "asset_type": "html",
-      "doc_version": "1.0",
-      "applies_to": ["northstar_workspace:3.2", "northstar_workspace:4.2"],
       "size_bytes": 1461,
       "checksum_sha256": "d41d5b23988650e8dd26a1f34eba994c66849bebdb78151c192e3da84222cbd2",
       "metadata_status": "complete",
       "pii_scan_status": "clear",
-      "language": "zh-CN"
+      "language": "zh-CN",
+      "notes": "文档版本 1.0；适用于 northstar_workspace 3.2 与 4.2。"
     }
   ]
 }

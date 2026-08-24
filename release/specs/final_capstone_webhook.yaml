@@ -16,7 +16,7 @@ components:
     embedding_model: Qwen/Qwen3-Embedding-4B@1536
     source_paths:
       - pipelines/indexing/embedder.py
-      - reports/capstone/bootstrap-all.json
+      - assignments/final_capstone/yangong/reports/raw/bootstrap-all.json
   prompt:
     release_id: prompt-solution-card-v1
     template_versions:
@@ -56,6 +56,8 @@ components:
   service:
     release_id: service-solution-card-v1
     components: [rag_api, copilot_api, copilot_console]
+    feature_flags:
+      solution_card: true
     source_paths:
       - contracts/product/solution_card.schema.json
       - infra/migrations/016_final_capstone_solution_card.sql
@@ -67,11 +69,12 @@ quality:
   eval:
     run_id: eval-final-capstone-candidate-fixed
     gate_status: pass
-    report_path: reports/capstone/solution-card-eval-candidate.json
+    report_path: assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
     source_paths:
-      - reports/capstone/solution-card-eval-candidate.json
-      - reports/capstone/e2e-candidate.json
-      - reports/capstone/e2e-model-fault.json
+      - assignments/final_capstone/yangong/reports/raw/solution-card-eval-candidate.json
+      - assignments/final_capstone/yangong/reports/raw/e2e-candidate.json
+      - assignments/final_capstone/yangong/reports/raw/e2e-model-fault.json
+      - assignments/final_capstone/yangong/reports/raw/e2e-post-rollback.json
 business_slo:
   policy_id: week12-slo-v1
   status: pass

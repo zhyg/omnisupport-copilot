@@ -183,6 +183,10 @@
           "uniqueItems": true,
           "items": {"type": "string", "minLength": 1}
         },
+        "feature_flags": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        },
         "artifact_digests": {"$ref": "#/$defs/artifactDigests"}
       }
     },

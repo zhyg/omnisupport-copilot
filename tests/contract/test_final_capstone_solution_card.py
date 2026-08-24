@@ -11,8 +11,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "services/rag_api"))
 
 from app.models.rag_models import ProposedAction, SolutionCardResponse  # noqa: E402
+from app import retrieval  # noqa: E402
+from app.routers.rag import _debug_payload  # noqa: E402
 from app.solution_card import needs_clarification, proposed_action_for  # noqa: E402
+from pipelines.indexing.embedder import (  # noqa: E402
+    _embedding_api_key,
+    _embedding_base_url,
+)
 from pipelines.query.rewriter import extract_protected_terms  # noqa: E402
+from scripts.capstone.evaluate_solution_cards import _scenario_result  # noqa: E402
+from services.graph.models import GraphEvidenceChunk  # noqa: E402
 
 
 def test_solution_card_schema_accepts_only_the_frozen_contract():
@@ -64,8 +72,13 @@ def test_unknown_webhook_code_is_a_protected_identifier():
 def test_synthetic_manifest_checksums_and_golden_set():
     base = ROOT / "assignments/final_capstone/yangong"
     manifest = json.loads((base / "data/manifest_webhook_troubleshooting.json").read_text())
+    manifest_schema = json.loads(
+        (ROOT / "data/seed_manifests/source_manifest_schema.json").read_text()
+    )
+    jsonschema.Draft202012Validator(manifest_schema).validate(manifest)
     assert manifest["license_tag"] == "course_synthetic"
-    assert manifest["pii_policy"]["scan_status"] == "clear"
+    assert manifest["contract_ref"] == "omni://contracts/data/doc_asset/v1"
+    assert all(asset["pii_scan_status"] == "clear" for asset in manifest["assets"])
     for asset in manifest["assets"]:
         path = ROOT / asset["source_url_or_path"]
         assert path.stat().st_size == asset["size_bytes"]
@@ -78,6 +91,117 @@ def test_synthetic_manifest_checksums_and_golden_set():
     ]
     assert [item["case_id"][:2] for item in cases] == [f"C{i}" for i in range(1, 9)]
     assert all(item["expected_action"]["control"] in {"none", "confirm", "hitl"} for item in cases)
+
+
+def test_embedding_credentials_are_provider_scoped(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
+    monkeypatch.setenv("SILICONFLOW_API_KEY", "siliconflow-secret")
+    monkeypatch.delenv("EMBEDDING_API_KEY", raising=False)
+    monkeypatch.delenv("EMBEDDING_BASE_URL", raising=False)
+
+    assert _embedding_api_key("openai", None) == "openai-secret"
+    assert (
+        _embedding_api_key("siliconflow", "https://api.siliconflow.cn/v1")
+        == "siliconflow-secret"
+    )
+    assert _embedding_api_key("openai", "https://api.siliconflow.cn/v1") == ""
+    assert _embedding_api_key("siliconflow", "https://api.openai.com/v1") == ""
+    assert _embedding_base_url("siliconflow") == "https://api.siliconflow.cn/v1"
+
+
+def test_rerank_never_falls_back_to_openai_credentials(monkeypatch):
+    monkeypatch.setattr(retrieval.settings, "rerank_provider", "siliconflow")
+    monkeypatch.setattr(retrieval.settings, "rerank_base_url", "https://api.siliconflow.cn/v1")
+    monkeypatch.setattr(retrieval.settings, "rerank_api_key", "")
+    monkeypatch.setattr(retrieval.settings, "siliconflow_api_key", "siliconflow-secret")
+    monkeypatch.setattr(retrieval.settings, "openai_api_key", "openai-secret")
+    assert retrieval._rerank_api_key() == "siliconflow-secret"
+
+    monkeypatch.setattr(retrieval.settings, "siliconflow_api_key", "")
+    assert retrieval._rerank_api_key() == ""
+
+    monkeypatch.setattr(retrieval.settings, "rerank_base_url", "https://rerank.example.test/v1")
+    monkeypatch.setattr(retrieval.settings, "siliconflow_api_key", "siliconflow-secret")
+    assert retrieval._rerank_api_key() == ""
+
+
+def test_graph_debug_uses_safe_rerank_defaults():
+    chunk = GraphEvidenceChunk(
+        chunk_id="chunk-1",
+        evidence_id="evidence-1",
+        doc_id="doc-1",
+        source_id="source-1",
+        content="graph evidence",
+        section_path="root",
+        final_score=0.9,
+    )
+    debug = _debug_payload([chunk], {}, mode="graph_multihop")
+    assert debug.rerank_provider == "none"
+    assert debug.rerank_model == "none"
+    assert debug.rerank_latency_ms == 0.0
+
+
+def test_operational_cases_cannot_pass_without_scenario_setup():
+    c7 = {"case_id": "C7_model_failure", "fault_injection": "llm_timeout"}
+    c8 = {"case_id": "C8_rollback", "requires_release_rollback": True}
+    assert _scenario_result(
+        c7,
+        fault_report=None,
+        rollback_report=None,
+        expected_rollback_release_id=None,
+    )["status"] == "not_run"
+    assert _scenario_result(
+        c8,
+        fault_report=None,
+        rollback_report=None,
+        expected_rollback_release_id=None,
+    )["status"] == "not_run"
+
+
+def test_operational_cases_validate_fault_and_real_rollback_evidence():
+    fault = {
+        "status": "pass",
+        "scenario": "llm_fault",
+        "checks": {
+            "runtime": {"status": "ok"},
+            "rag": {
+                "generation_mode": "deterministic_fallback",
+                "generation_fallback_reason": "llm_error:APITimeoutError",
+                "evidence_count": 5,
+                "trace_id": "trace-fault",
+                "release_id": "candidate",
+            },
+        },
+    }
+    rollback = {
+        "status": "pass",
+        "scenario": "release_rollback",
+        "checks": {
+            "runtime": {"status": "ok", "release_id": "baseline"},
+            "release_pointer": {"release_id": "baseline"},
+            "rag": {
+                "release_id": "baseline",
+                "evidence_count": 5,
+                "trace_id": "trace-rollback",
+            },
+            "solution_card_disabled": {
+                "status_code": 404,
+                "detail": "solution_card_disabled",
+            },
+        },
+    }
+    assert _scenario_result(
+        {"case_id": "C7", "fault_injection": "llm_timeout"},
+        fault_report=fault,
+        rollback_report=None,
+        expected_rollback_release_id=None,
+    )["status"] == "pass"
+    assert _scenario_result(
+        {"case_id": "C8", "requires_release_rollback": True},
+        fault_report=None,
+        rollback_report=rollback,
+        expected_rollback_release_id="baseline",
+    )["status"] == "pass"
 
 
 def test_model_bundle_and_solution_card_are_wired_without_secrets():

@@ -2,62 +2,61 @@
   "api_version": "omnisupport.ai/v2",
   "kind": "GovernedRelease",
   "metadata": {
-    "release_id": "omni-dev-v2026.08.23-001",
+    "release_id": "omni-dev-v2026.08.24-001",
     "environment": "dev",
-    "created_at": "2026-08-23T15:37:38.111783+00:00",
+    "created_at": "2026-08-24T02:15:58.493430+00:00",
     "created_by": "yangong",
     "approved_by": null,
     "git_sha": "1473db6dfa785487e1a0f87bb97bdfec6719725c",
-    "previous_release_id": "capstone-webhook-v2.0.0",
-    "previous_manifest_digest": "sha256:301ed151aaed268246327bc74f4313b92d09513ca0b443c2f698adefb5a68653"
+    "previous_release_id": null,
+    "previous_manifest_digest": null
   },
   "spec": {
     "components": {
       "data": {
-        "release_id": "data-capstone-webhook-v2",
+        "release_id": "data-capstone-v1",
         "lakefs_repository": "omnisupport-data",
-        "lakefs_ref": "refs/tags/data-capstone-webhook-v2",
+        "lakefs_ref": "refs/tags/data-capstone-v1",
         "iceberg_snapshot_ids": {
-          "bronze.ticket_event": "capstone-webhook-v2",
-          "silver.ticket_current": "capstone-webhook-v2"
+          "bronze.ticket_event": "capstone-v1",
+          "silver.ticket_current": "capstone-v1"
         },
         "artifact_digests": {
-          "assignments/final_capstone/yangong/data/manifest_webhook_troubleshooting.json": "sha256:100c493039f86899bc43b8de79375e8041313630c59de9fb3392f5160950c848"
+          "assignments/final_capstone/yangong/reports/baseline_component_bindings.json": "sha256:7dabbdec185afb6afd6bbfdccec0fbe9aed3be5f8bed0422434eb0d2cd07ab2f"
         }
       },
       "index": {
-        "release_id": "index-capstone-qwen3-1536-v1",
-        "data_release_id": "data-capstone-webhook-v2",
-        "embedding_model": "Qwen/Qwen3-Embedding-4B@1536",
+        "release_id": "index-capstone-v1",
+        "data_release_id": "data-capstone-v1",
+        "embedding_model": "deterministic-hash-embedding-v1@1536",
         "artifact_digests": {
-          "reports/capstone/bootstrap-all.json": "sha256:cd7881a191047996e5a34786f6607581b86a4afbf88c9b3e6140b4d78ded5781"
+          "assignments/final_capstone/yangong/reports/baseline_component_bindings.json": "sha256:7dabbdec185afb6afd6bbfdccec0fbe9aed3be5f8bed0422434eb0d2cd07ab2f"
         }
       },
       "prompt": {
-        "release_id": "prompt-solution-card-v1",
+        "release_id": "prompt-capstone-v1",
         "template_versions": {
           "answer": "answer_v1",
-          "no_answer": "no_answer_v1",
-          "solution_card": "solution_card_v1"
+          "no_answer": "no_answer_v1"
         },
         "artifact_digests": {
           "services/rag_api/app/prompts/answer_v1.md": "sha256:5adcef9387e4c33961635ac17dab02aa76a50f6b8b27799b3a33ec056c13b70d",
-          "services/rag_api/app/prompts/solution_card_v1.md": "sha256:18bfb482cbef0fa9a3d01798c01d8c6072499266fc36c281ae616d454813b855"
+          "services/rag_api/app/prompts/no_answer_v1.md": "sha256:13cf3fbf307b645f58950fa223a44799521e21cf8ce510c7b7a4d5ededb9c8c6"
         }
       },
       "model": {
-        "release_id": "model-siliconflow-final-v1",
-        "provider": "siliconflow",
-        "model_id": "Qwen/Qwen3.5-27B",
-        "snapshot": "Qwen/Qwen3.5-27B@provider-pinned-2026-08-23",
-        "system_card": "assignments/final_capstone/yangong/contracts/capability.md",
+        "release_id": "model-deterministic-fallback-v1",
+        "provider": "fallback",
+        "model_id": "deterministic-grounded-template-v1",
+        "snapshot": "git:1473db6dfa785487e1a0f87bb97bdfec6719725c",
+        "system_card": "assignments/final_capstone/yangong/reports/baseline_component_bindings.json",
         "models": {
-          "generation": "Qwen/Qwen3.5-27B",
-          "embedding": "Qwen/Qwen3-Embedding-4B",
-          "rerank": "Pro/BAAI/bge-reranker-v2-m3"
+          "generation": "deterministic-grounded-template-v1",
+          "embedding": "deterministic-hash-embedding-v1",
+          "rerank": "disabled"
         },
         "artifact_digests": {
-          "assignments/final_capstone/yangong/contracts/capability.md": "sha256:627294949c7907e358a756c95a3c708a37096590607f156cdc4d4d61b374337b"
+          "assignments/final_capstone/yangong/reports/baseline_component_bindings.json": "sha256:7dabbdec185afb6afd6bbfdccec0fbe9aed3be5f8bed0422434eb0d2cd07ab2f"
         }
       },
       "skills": {
@@ -72,20 +71,35 @@
         }
       },
       "graph": {
-        "release_id": "graph-capstone-webhook-v2",
+        "release_id": "graph-capstone-prechange-v1",
         "schema_version": "graph_schema_v1",
         "artifact_digests": {
-          "data/capstone/graph_annotations_v1.json": "sha256:218e2b56e32db5e3599f9e11749287250945d40f3d9686562ba6209248a36ab8"
+          "assignments/final_capstone/yangong/reports/baseline_component_bindings.json": "sha256:7dabbdec185afb6afd6bbfdccec0fbe9aed3be5f8bed0422434eb0d2cd07ab2f"
+        }
+      },
+      "service": {
+        "release_id": "service-capstone-v1",
+        "components": [
+          "rag_api",
+          "tool_api",
+          "copilot_api",
+          "copilot_console"
+        ],
+        "feature_flags": {
+          "solution_card": false
+        },
+        "artifact_digests": {
+          "assignments/final_capstone/yangong/reports/baseline_component_bindings.json": "sha256:7dabbdec185afb6afd6bbfdccec0fbe9aed3be5f8bed0422434eb0d2cd07ab2f"
         }
       }
     },
     "quality": {
       "eval": {
-        "run_id": "eval-final-capstone-candidate-fixed",
+        "run_id": "e2e-baseline-legacy",
         "gate_status": "pass",
-        "report_path": "reports/capstone/solution-card-eval-candidate.json",
+        "report_path": "assignments/final_capstone/yangong/reports/raw/e2e-baseline-legacy.json",
         "artifact_digests": {
-          "reports/capstone/solution-card-eval-candidate.json": "sha256:c1b88e4133b395723249b6cbd6702c7b41b0e4011b997f5f3ead97ab8a1a7c2c"
+          "assignments/final_capstone/yangong/reports/raw/e2e-baseline-legacy.json": "sha256:9ad009397661f574bf314bf97918f32466733cb937bb62f0a5d04cbf0ce8304e"
         }
       }
     },
@@ -100,13 +114,13 @@
       "stages": [
         {
           "traffic_percent": 5,
-          "min_samples": 8,
+          "min_samples": 1,
           "min_observation_minutes": 1,
           "gates": [
             {
-              "metric": "key_point_pass_rate",
+              "metric": "legacy_e2e_pass",
               "operator": ">=",
-              "threshold": 0.8
+              "threshold": 1
             }
           ],
           "baseline_guards": [
@@ -119,13 +133,13 @@
         },
         {
           "traffic_percent": 25,
-          "min_samples": 8,
+          "min_samples": 1,
           "min_observation_minutes": 1,
           "gates": [
             {
-              "metric": "citation_support_proxy_rate",
+              "metric": "legacy_e2e_pass",
               "operator": ">=",
-              "threshold": 1.0
+              "threshold": 1
             }
           ],
           "baseline_guards": [
@@ -138,13 +152,13 @@
         },
         {
           "traffic_percent": 50,
-          "min_samples": 8,
+          "min_samples": 1,
           "min_observation_minutes": 1,
           "gates": [
             {
-              "metric": "key_point_pass_rate",
+              "metric": "legacy_e2e_pass",
               "operator": ">=",
-              "threshold": 0.8
+              "threshold": 1
             }
           ],
           "baseline_guards": [
@@ -157,13 +171,13 @@
         },
         {
           "traffic_percent": 100,
-          "min_samples": 8,
+          "min_samples": 1,
           "min_observation_minutes": 1,
           "gates": [
             {
-              "metric": "key_point_pass_rate",
+              "metric": "legacy_e2e_pass",
               "operator": ">=",
-              "threshold": 0.8
+              "threshold": 1
             }
           ],
           "baseline_guards": [
@@ -184,7 +198,7 @@
       ]
     },
     "governance": {
-      "change_ticket": "CHG-FINAL-CAPSTONE-WEBHOOK",
+      "change_ticket": "CHG-FINAL-CAPSTONE-BASELINE",
       "data_classification": "internal",
       "required_approvals": [
         "release_owner",
@@ -193,7 +207,7 @@
     }
   },
   "integrity": {
-    "manifest_digest": "sha256:e2a92f5718df7b98e4d9c72065b09e1654cc9803f197a372e200b55f5335b774",
+    "manifest_digest": "sha256:ab17254254181897787df97a591c47a0fc4aeeac652fa2225acf8712204d6d3f",
     "signature": {
       "algorithm": "none",
       "key_id": null,

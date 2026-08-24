@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     release_environment: str = "dev"
     data_release_id: str = "data-capstone-v1"
     prompt_release_id: str = "prompt-capstone-v1"
+    solution_card_enabled: bool = True
     otel_service_name: str = "copilot_api"
     otel_exporter_otlp_endpoint: str = "http://localhost:4318"
     otel_enabled: bool = True
