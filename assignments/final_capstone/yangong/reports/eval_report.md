@@ -3,10 +3,11 @@
 ```yaml
 dataset: assignments/final_capstone/yangong/evals/golden_set.jsonl
 baseline: omni-dev-v2026.08.24-001 / pre-change，方案卡关闭
-candidate: omni-dev-v2026.08.24-003 / siliconflow Qwen/Qwen3.5-27B
+candidate: omni-dev-v2026.08.24-003（运行标签）/ siliconflow Qwen/Qwen3.5-27B
+candidate_governed_release: omni-dev-v2026.08.28-001
 data: data-capstone-webhook-v2
 index: index-capstone-qwen3-1536-v1
-commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
+commit: 8176c947df96e92f5d976f96de9cbc00bdb7aaa7
 ```
 
 ## 指标与门槛
@@ -25,6 +26,8 @@ commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
 Baseline 与候选使用同一个 Golden Set 和同一 checks/metrics 代码。Baseline 001 runtime、active pointer 和四项组件绑定匹配，8 条逐案例原始请求全部实测为 `404 solution_card_disabled`，因此质量指标记为 0%，而非 N/A；原始结果见 [solution-card-eval-baseline.json](raw/solution-card-eval-baseline.json)。候选的 27B 真实生成和远程重排引入网络/推理延迟，本次小样本 p95 为 67.946 秒。8 条样本仅用于课程验收，不代表容量 SLO。
 
 Token 采用明确代理：每条响应 `ceil(Unicode 字符数 / 4)`。正常 E2E 为 37、故障降级 E2E 为 31，均值 34；6 条实际在线方案卡均值为 73.5。生成/降级比例来自两个受控 E2E 观察（1 次 `llm`、1 次 `deterministic_fallback`），样本量限制记录在 [e2e_report.json](e2e_report.json)。
+
+本报告引用的原始结果由受治理 manifest [omni-dev-v2026.08.28-001](releases/omni-dev-v2026.08.28-001.json) 的 `quality.eval` 以 SHA-256 绑定；首个候选 `003` 绑定的仍是已废弃的 pre-release 评测，重新签发的原因见[发布与回滚报告](release_and_rollback.md)。表中数值对应提交 `8176c94`，即 citation 选取修复之后的代码。
 
 ## C1–C8
 

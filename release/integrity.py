@@ -6,6 +6,7 @@ import copy
 import hashlib
 import hmac
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,60 @@ def file_digest(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return f"sha256:{digest.hexdigest()}"
+
+
+def iter_artifact_digests(manifest: dict[str, Any]) -> Iterator[tuple[str, str, str]]:
+    """Yield (scope, artifact path, expected digest) for every artifact the spec binds."""
+
+    def walk(node: Any, trail: tuple[str, ...]) -> Iterator[tuple[str, str, str]]:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "artifact_digests" and isinstance(value, dict):
+                    scope = ".".join(trail)
+                    for path, digest in value.items():
+                        yield scope, str(path), str(digest)
+                else:
+                    yield from walk(value, trail + (str(key),))
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                yield from walk(value, trail + (str(index),))
+
+    yield from walk(manifest.get("spec") or {}, ())
+
+
+def artifact_digest_drift(
+    manifest: dict[str, Any], project_root: Path
+) -> list[dict[str, str]]:
+    """Report bound artifacts whose current content no longer matches the manifest.
+
+    A manifest stays internally consistent after the code it describes changes, so the
+    self digest alone cannot detect that a release no longer binds the working tree.
+    """
+
+    root = project_root.resolve()
+    drift: list[dict[str, str]] = []
+    for scope, raw_path, expected in iter_artifact_digests(manifest):
+        record = {"scope": scope, "path": raw_path, "expected": expected}
+        path = (root / raw_path).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            drift.append({**record, "status": "outside_project_root", "actual": ""})
+            continue
+        if not path.is_file():
+            drift.append({**record, "status": "missing", "actual": ""})
+            continue
+        actual = file_digest(path)
+        if not hmac.compare_digest(expected, actual):
+            drift.append({**record, "status": "mismatch", "actual": actual})
+    return drift
+
+
+def verify_artifact_digests(manifest: dict[str, Any], project_root: Path) -> None:
+    drift = artifact_digest_drift(manifest, project_root)
+    if drift:
+        detail = ", ".join(f"{item['path']} ({item['status']})" for item in drift)
+        raise ValueError(f"release artifact digests no longer match the tree: {detail}")
 
 
 def manifest_payload(manifest: dict[str, Any]) -> dict[str, Any]:

@@ -2,11 +2,11 @@
 
 ```yaml
 baseline_commit: 1473db6dfa785487e1a0f87bb97bdfec6719725c
-candidate_commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
-candidate_worktree: implementation committed; evidence metadata updated in follow-up commits
+candidate_commit: 8176c947df96e92f5d976f96de9cbc00bdb7aaa7
 theme: webhook-troubleshooting
 provider/model: siliconflow / Qwen/Qwen3.5-27B; embedding Qwen/Qwen3-Embedding-4B; rerank Pro/BAAI/bge-reranker-v2-m3
-release_id: omni-dev-v2026.08.24-003（C8 回滚到 001 后已恢复候选）
+governed_release_id: omni-dev-v2026.08.28-001（在 8176c94 上重新签发，绑定当前代码与最终证据）
+runtime_release_label: omni-dev-v2026.08.24-003（实测运行时标签；C8 回滚到 001 后已恢复候选）
 golden_set: 8 cases, 8 passed
 hard_gates: G1..G6 pass
 capstone_e2e: pass
@@ -77,6 +77,8 @@ docker compose --env-file infra/env/.env.local -f infra/docker-compose.yml --pro
 
 两次 bootstrap 分别写入独立报告：[首次](reports/raw/bootstrap-all.json)记录 `tickets.inserted=240`、117 个当前 chunk（`index.embedded=91/skipped=26`，因为 26 个向量已存在），[重放](reports/raw/bootstrap-replay.json)记录 `tickets.skipped=240`、`index.embedded=0/skipped=117`。E2E 顶层应为 `status=pass`，Golden Set 应为 `passed=8`。产品入口为 <http://localhost:8010>，内部 RAG OpenAPI 为 <http://localhost:8000/docs>，Phoenix 为 <http://localhost:6006>。
 
+上面的 `omni-dev-v2026.08.24-003` 是产出这批证据时运行时实际使用的 release 标签（`CAPSTONE_RELEASE_ID`），所以命令和 `reports/raw` 里的 `release_id` 保持一致，可原样复现。同一提交的受治理记录是重新签发的 `omni-dev-v2026.08.28-001`；两者指向相同的代码与 artifact，但标签要完全对齐需要把 `CAPSTONE_RELEASE_ID` 与 `--expected-release-id` 换成新 id 后重跑整套验收。
+
 ## 测试与发布
 
 ```bash
@@ -88,11 +90,14 @@ python -m release.generator --spec release/specs/final_capstone_baseline.yaml \
   --git-sha 1473db6dfa785487e1a0f87bb97bdfec6719725c
 python -m release.generator --spec release/specs/final_capstone_webhook.yaml \
   --output-dir "$release_output_dir" --environment dev --created-by yangong \
-  --git-sha 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72 \
+  --git-sha 8176c947df96e92f5d976f96de9cbc00bdb7aaa7 \
   --previous-manifest "$release_output_dir"/omni-dev-*.json
+python -m release.verify assignments/final_capstone/yangong/reports/releases/*.json
 ```
 
-已生成的 baseline 和候选 manifest 分别是 [001](reports/releases/omni-dev-v2026.08.24-001.json) 与 [003](reports/releases/omni-dev-v2026.08.24-003.json)。原始报告均在 [reports/raw](reports/raw/)；注册、激活和回滚证据见 [release_and_rollback.md](reports/release_and_rollback.md)。
+已生成的 manifest 是 baseline [001](reports/releases/omni-dev-v2026.08.24-001.json)、首个候选 [003](reports/releases/omni-dev-v2026.08.24-003.json) 和重新签发的候选 [08.28-001](reports/releases/omni-dev-v2026.08.28-001.json)。原始报告均在 [reports/raw](reports/raw/)；注册、激活和回滚证据见 [release_and_rollback.md](reports/release_and_rollback.md)。
+
+`release.verify` 是发布前的 digest 复核：manifest 的自摘要在其绑定的文件被改动后仍然自洽，所以必须把 `artifact_digests` 与工作区重新比对，否则代码漂移不会被任何门禁发现。候选 `003` 正是这样漂移的，`08.28-001` 是据此重新签发的结果，详情见[发布与回滚报告](reports/release_and_rollback.md)。该命令对 `001` 与 `08.28-001` 返回 `status=ok`，对 `003` 返回 `status=fail` 并列出 3 处 `mismatch`。
 
 Baseline 同口径评测必须在 001 runtime、active pointer 与真实旧 artifact 均恢复后运行；8 条问题会逐条实测 `404 solution_card_disabled`，报告质量指标为 0%，命令如下：
 

@@ -11,7 +11,12 @@ import pytest
 from governance.openlineage import build_release_event
 from release.compliance.generator import build_evidence_pack
 from release.generator import build_manifest, load_document, validate_schema
-from release.integrity import verify_manifest
+from release.integrity import (
+    artifact_digest_drift,
+    finalize_manifest,
+    verify_artifact_digests,
+    verify_manifest,
+)
 from release.policy import validate_release_policy
 from tools.impact_analysis import analyze_impact
 
@@ -68,6 +73,40 @@ def test_week14_manifest_detects_tampering_and_enforces_prod_approval(tmp_path):
     incomplete_chain["metadata"]["previous_release_id"] = "omni-dev-v2026.07.19-001"
     with pytest.raises(ValueError, match="must be set together"):
         validate_release_policy(incomplete_chain)
+
+
+def test_week14_manifest_self_digest_stays_valid_while_bound_artifacts_drift(tmp_path):
+    manifest = _manifest(tmp_path)
+    assert artifact_digest_drift(manifest, ROOT) == []
+
+    drifted = deepcopy(manifest)
+    digests = drifted["spec"]["components"]["prompt"]["artifact_digests"]
+    changed = sorted(digests)[0]
+    digests[changed] = f"sha256:{'0' * 64}"
+    digests["services/rag_api/app/prompts/does_not_exist.md"] = f"sha256:{'1' * 64}"
+    drifted = finalize_manifest(drifted)
+
+    # A manifest that was re-signed after its artifacts moved is still self consistent,
+    # so digest drift has to be checked against the tree rather than against the payload.
+    verify_manifest(drifted)
+    drift = {item["path"]: item["status"] for item in artifact_digest_drift(drifted, ROOT)}
+    assert drift == {
+        changed: "mismatch",
+        "services/rag_api/app/prompts/does_not_exist.md": "missing",
+    }
+    with pytest.raises(ValueError, match="no longer match the tree"):
+        verify_artifact_digests(drifted, ROOT)
+
+
+def test_week14_manifest_drift_check_rejects_paths_outside_the_project_root(tmp_path):
+    manifest = _manifest(tmp_path)
+    escaping = deepcopy(manifest)
+    escaping["spec"]["components"]["prompt"]["artifact_digests"] = {
+        "../outside.md": f"sha256:{'2' * 64}"
+    }
+    assert [item["status"] for item in artifact_digest_drift(escaping, ROOT)] == [
+        "outside_project_root"
+    ]
 
 
 def test_week14_impact_lineage_and_compliance_use_the_same_manifest(tmp_path):

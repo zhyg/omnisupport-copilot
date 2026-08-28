@@ -7,6 +7,9 @@ baseline_manifest_digest: sha256:ab17254254181897787df97a591c47a0fc4aeeac652fa22
 candidate_release: omni-dev-v2026.08.24-003
 candidate_commit: 6eed8cffb80c0d9786f460b1eb0afd8d0fa15c72
 candidate_manifest_digest: sha256:c190567b2c60b39f0b6fa1adf051f749829449dafa4bcec240175802cd82b2bd
+reissued_candidate_release: omni-dev-v2026.08.28-001
+reissued_candidate_commit: 8176c947df96e92f5d976f96de9cbc00bdb7aaa7
+reissued_candidate_manifest_digest: sha256:635e14c6799275248a9bb9114018d9286db5a5e41047755b69043b5509e371ec
 rollback_generation: 5
 post_rollback_e2e: pass
 candidate_restored_generation: 6
@@ -41,6 +44,32 @@ Baseline `001` 由提交 `1473db6` 的代码和数据链生成，不包含本次
 7. 为补齐 R8，同样再次切到真实 `001`（generation 7），用相同 8 条问题逐条记录 `404 solution_card_disabled`；随后恢复 `003`（generation 8）。最终 runtime、RAG 与 active pointer 均为 `003`。
 
 机器证据为 [e2e-post-rollback.json](raw/e2e-post-rollback.json)：trace `3a63f1454524fe45f82c5e9f0ce25c17`，明确记录 baseline 的 data/index/prompt/graph 四项绑定以及方案卡关闭结果。最终 Golden Set 只有在该报告与 baseline manifest 完全匹配时才允许 C8 通过。
+
+## 候选 manifest 重新签发
+
+首个候选 `003` 在提交 `6eed8cf` 上签发，之后的 `a9e2bf7`、`84ef892`、`8176c94` 又改动了它绑定的文件却没有重新签发，因此 `003` 已经不再描述当前代码：
+
+| 问题 | 具体表现 |
+|---|---|
+| 实现摘要过期 | `8176c94` 把 `solution_card.py` 的 citation 选取改为只保留覆盖问题中每个精确标识符的 source 级 citation，并在 abstain 时清空 citations；`003` 记录的是该修复前的摘要 |
+| 门禁证据过期 | `003` 的 `quality.eval.report_path` 指向已废弃的 `raw/solution-card-eval-pre-release.json`，并绑定同样已废弃的 `raw/e2e-candidate.json` |
+| 绑定缺口 | `raw/solution-card-eval-candidate.json`、`raw/solution-card-eval-baseline.json`、`raw/e2e-candidate-final.json`、`raw/bootstrap-replay.json` 未被任何 manifest 保护 |
+
+`python -m release.verify` 把 `003` 的三处漂移报为 `mismatch`：`services/rag_api/app/solution_card.py`、`services/copilot_api/app/main.py` 和 `raw/e2e-model-fault.json`。manifest 不可变（生成器以 `open("x")` 写入），所以在 `8176c94` 上按当前 spec 重新签发了 `omni-dev-v2026.08.28-001`，`previous_release_id` 链到 `003`，复核结果为零漂移。
+
+`git_sha` 落后 HEAD 本身不足以判定问题：只有当落后的提交动过被绑定的 artifact 时绑定才失效，这正是复核 `artifact_digests` 而非比较提交号的原因。
+
+本次没有重跑验收，因此 `reports/raw` 里的 `release_id` 仍是运行标签 `omni-dev-v2026.08.24-003`。`08.28-001` 与 `003` 指向同一提交的同一批 artifact，但要让运行标签与受治理 id 完全一致，必须用新 id 重跑 bootstrap、C7 故障注入、C8 回滚与 baseline 同口径评测。注册和提升依赖运行中的 Postgres，尚未执行：
+
+```bash
+python -m release.verify \
+  assignments/final_capstone/yangong/reports/releases/omni-dev-v2026.08.28-001.json
+python -m release.registry register \
+  --manifest assignments/final_capstone/yangong/reports/releases/omni-dev-v2026.08.28-001.json
+python -m release.registry promote \
+  --release-id omni-dev-v2026.08.28-001 \
+  --expected-current-release-id omni-dev-v2026.08.24-003 --actor yangong
+```
 
 ## 注册、提升与回滚命令
 

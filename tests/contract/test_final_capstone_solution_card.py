@@ -8,6 +8,9 @@ from pathlib import Path
 import jsonschema
 
 ROOT = Path(__file__).resolve().parents[2]
+CANDIDATE_MANIFEST = (
+    ROOT / "assignments/final_capstone/yangong/reports/releases/omni-dev-v2026.08.28-001.json"
+)
 sys.path.insert(0, str(ROOT / "services/rag_api"))
 
 from app import retrieval  # noqa: E402
@@ -20,6 +23,8 @@ from pipelines.indexing.embedder import (  # noqa: E402
     _embedding_base_url,
 )
 from pipelines.query.rewriter import extract_protected_terms  # noqa: E402
+from release.integrity import iter_artifact_digests  # noqa: E402
+from release.verify import verify_release_manifest  # noqa: E402
 from scripts.capstone.evaluate_solution_cards import (  # noqa: E402
     _citations_supported,
     _scenario_result,
@@ -318,3 +323,22 @@ def test_model_bundle_and_solution_card_are_wired_without_secrets():
     ).read_text()
     product_api = (ROOT / "services/copilot_api/app/main.py").read_text()
     assert 'result["query_rewrite_debug"] = answer.get("query_rewrite_debug")' in product_api
+
+
+def test_candidate_release_manifest_binds_the_current_tree_and_final_evidence():
+    manifest = json.loads(CANDIDATE_MANIFEST.read_text())
+    assert verify_release_manifest(manifest, project_root=ROOT) == []
+    assert manifest["metadata"]["previous_release_id"] == "omni-dev-v2026.08.24-003"
+
+    bound = {path for _, path, _ in iter_artifact_digests(manifest)}
+    assert manifest["spec"]["quality"]["eval"]["report_path"] in bound
+    for name in (
+        "raw/solution-card-eval-candidate.json",
+        "raw/solution-card-eval-baseline.json",
+        "raw/e2e-candidate-final.json",
+        "raw/bootstrap-replay.json",
+        "services/rag_api/app/solution_card.py",
+    ):
+        assert any(path.endswith(name) for path in bound), name
+    # The superseded pre-release evidence must not come back as a gate artifact.
+    assert not any(path.endswith("raw/solution-card-eval-pre-release.json") for path in bound)
