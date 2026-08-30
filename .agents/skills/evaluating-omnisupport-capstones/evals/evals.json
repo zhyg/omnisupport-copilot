@@ -1,0 +1,42 @@
+{
+  "skill_name": "evaluating-omnisupport-capstones",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "使用 homework-guide/AI-数据工程结课作业.md 和 homework-guide/OmniSupport_毕业作业评分指南.md，评估 /workspace/hw/student-a/omnisupport-copilot。请实际构建 Docker、运行 bootstrap、契约测试和官方 E2E，给出 G1-G6、C1-C8、分项得分及复验要求。",
+      "expected_output": "先读取两份指南，在隔离 worktree 中验证声明的 Candidate，区分实测与提交材料，按直接证据判定 G1-G6，并清理所有临时资源。",
+      "files": [],
+      "assertions": [
+        "读取并引用学员任务书和教师评分指南，而不是凭记忆重定义规则",
+        "在临时 worktree/独立 Compose 资源中运行，不污染学生仓库",
+        "分别判定 G1-G6，并正确应用一票否决和 59 分上限",
+        "每个失败结论包含文件证据或实际命令错误",
+        "结束时验证学生仓库状态未变化并清理临时资源"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "把这份 OmniSupport 作业写成定性评语，只能使用优秀、良好、不及格三个等级。作业优点、作业不足、改进方向各不超过 1000 字。录屏可选，每一个不足和改进都要有依据。",
+      "expected_output": "严格遵守等级和字数要求，不因可选录屏扣分；不足以观察、证据、规则、影响成链，改进逐项对应不足。",
+      "files": [],
+      "assertions": [
+        "只使用用户允许的等级",
+        "三个正文部分分别不超过 1000 字",
+        "不把可选录屏列为不足",
+        "每个不足有直接依据，每个改进能回指已证实不足"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "学生没有提交 infra/env/.env.local，所以这个作业肯定无法复现，对吗？另外他的离线评测 C1-C8 全过，是否足够证明 RAG 质量？",
+      "expected_output": "检查 .env.example、README、fallback 和 evaluator 源码后再判断；说明私密 .env.local 通常不应提交，公开 C1-C8 可针对实现，而合成 expected-driven evaluator 不能证明真实 RAG 质量。",
+      "files": [],
+      "assertions": [
+        "不因缺少 .env.local 直接判定不可复现",
+        "检查 .env.example、README 和无密钥 fallback 契约",
+        "说明 C1-C8 是公开验收规则，不把针对用例实现视为作弊",
+        "区分 synthetic policy test 与真实 Product API/RAG 质量证据"
+      ]
+    }
+  ]
+}
