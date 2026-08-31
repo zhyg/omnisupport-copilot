@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _persist_audit_log(
-    conn: Any,
+    conn_or_url: Any,
     *,
     log_id: str,
     request_id: str,
@@ -42,18 +42,22 @@ async def _persist_audit_log(
     trace_id: str | None,
     tenant_id: str,
 ) -> None:
-    if conn is None:
+    """持久化审计日志到 PostgreSQL public.audit_log 表。支持传入 connection 或 database_url。"""
+    if conn_or_url is None:
         return
-    execute_fn = getattr(conn, "execute", None)
+
+    insert_sql = """
+        INSERT INTO audit_log (
+            log_id, request_id, actor, tool_name, args_hash, result_code,
+            hitl_triggered, release_id, trace_id, tenant_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    """
+
+    execute_fn = getattr(conn_or_url, "execute", None)
     if execute_fn and callable(execute_fn):
         try:
             await execute_fn(
-                """
-                INSERT INTO audit_log (
-                    log_id, request_id, actor, tool_name, args_hash, result_code,
-                    hitl_triggered, release_id, trace_id, tenant_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                """,
+                insert_sql,
                 log_id,
                 request_id,
                 actor,
@@ -66,7 +70,28 @@ async def _persist_audit_log(
                 tenant_id,
             )
         except Exception as exc:
-            logger.warning("Failed to persist audit log to PostgreSQL: %s", exc)
+            logger.warning("Failed to persist audit log via connection: %s", exc)
+    elif isinstance(conn_or_url, str):
+        try:
+            conn = await asyncpg.connect(_normalize_dsn(conn_or_url))
+            try:
+                await conn.execute(
+                    insert_sql,
+                    log_id,
+                    request_id,
+                    actor,
+                    tool_name,
+                    args_hash,
+                    result_code,
+                    hitl_triggered,
+                    release_id,
+                    trace_id,
+                    tenant_id,
+                )
+            finally:
+                await conn.close()
+        except Exception as exc:
+            logger.warning("Failed to persist audit log via DSN: %s", exc)
 
 
 LOCAL_FILE = Path(__file__).resolve()
@@ -388,12 +413,28 @@ async def query_support_kpis(
 ) -> dict[str, Any]:
     registry = load_metric_registry(registry_path)
     denial = _validate_request(payload, registry)
+    db_target = database_url or settings.database_url
     if denial:
+        # 无论请求是否被拒绝，均持久化审计日志（ROLE_DENIED, METRIC_DENIED 等）
+        audit_info = denial.get("audit") or {}
+        await _persist_audit_log(
+            db_target,
+            log_id=denial.get("audit_id") or str(uuid.uuid4()),
+            request_id=str(uuid.uuid4()),
+            actor=payload.get("actor_id") or payload.get("actor_role"),
+            tool_name="query_support_kpis_v1",
+            args_hash=audit_info.get("query_fingerprint"),
+            result_code=denial.get("denial_code") or "DENIED",
+            hitl_triggered=False,
+            release_id=audit_info.get("release_id"),
+            trace_id=denial.get("trace_id"),
+            tenant_id=payload.get("tenant_id") or settings.default_tenant_id,
+        )
         return denial
 
     try:
         query, params = _build_query(payload, registry)
-        connection = await asyncpg.connect(_normalize_dsn(database_url or settings.database_url))
+        connection = await asyncpg.connect(_normalize_dsn(db_target))
         try:
             records = await connection.fetch(query, *params)
             rows = [{key: _json_safe(value) for key, value in record.items()} for record in records]
@@ -423,7 +464,7 @@ async def query_support_kpis(
         finally:
             await connection.close()
     except Exception as exc:
-        return _deny(
+        db_err = _deny(
             "DB_UNAVAILABLE",
             str(exc),
             payload,
@@ -431,6 +472,21 @@ async def query_support_kpis(
             policy_applied=BASE_POLICIES,
             status="error",
         )
+        audit_info = db_err.get("audit") or {}
+        await _persist_audit_log(
+            db_target,
+            log_id=db_err.get("audit_id") or str(uuid.uuid4()),
+            request_id=str(uuid.uuid4()),
+            actor=payload.get("actor_id") or payload.get("actor_role"),
+            tool_name="query_support_kpis_v1",
+            args_hash=audit_info.get("query_fingerprint"),
+            result_code="DB_UNAVAILABLE",
+            hitl_triggered=False,
+            release_id=audit_info.get("release_id"),
+            trace_id=db_err.get("trace_id"),
+            tenant_id=payload.get("tenant_id") or settings.default_tenant_id,
+        )
+        return db_err
 
     return {
         "allowed": True,

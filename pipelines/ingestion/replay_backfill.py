@@ -173,6 +173,8 @@ def main() -> None:
                 limit=args.limit,
                 report_path=None,
                 state_path=args.state_path,
+                start_cursor=args.start_cursor,
+                end_cursor=args.end_cursor,
             )
         )
 

@@ -314,3 +314,61 @@ async def test_query_support_kpis_persists_audit_log(monkeypatch, kpi_query_modu
     assert insert_stmt["args"][5] == "SUCCESS"
     assert insert_stmt["args"][8] == "trace-audit-test"
 
+
+@pytest.mark.asyncio
+async def test_query_support_kpis_persists_audit_log_on_denial(monkeypatch, kpi_query_module):
+    captured = {"executed_statements": []}
+
+    class FakeConnection:
+        async def execute(self, query, *args):
+            captured["executed_statements"].append({"query": query, "args": args})
+
+        async def close(self):
+            captured["closed"] = True
+
+    async def fake_connect(dsn):
+        return FakeConnection()
+
+    monkeypatch.setattr(kpi_query_module.asyncpg, "connect", fake_connect)
+
+    # 1. 越权调用 (support_agent 无权查 resolution_rate)
+    denied_payload = {
+        "actor_role": "support_agent",
+        "actor_id": "bad-agent",
+        "metrics": ["resolution_rate"],
+        "date_from": "2026-04-01",
+        "date_to": "2026-04-30",
+        "trace_id": "trace-denied-test",
+    }
+    denied_res = await kpi_query_module.query_support_kpis(denied_payload, registry_path=REGISTRY_PATH)
+    assert denied_res["allowed"] is False
+    assert denied_res["denial_code"] == "ROLE_DENIED"
+
+    assert len(captured["executed_statements"]) >= 1
+    insert_stmt = captured["executed_statements"][-1]
+    assert "INSERT INTO audit_log" in insert_stmt["query"]
+    assert insert_stmt["args"][0] == denied_res["audit_id"]
+    assert insert_stmt["args"][2] == "bad-agent"
+    assert insert_stmt["args"][5] == "ROLE_DENIED"
+    assert insert_stmt["args"][8] == "trace-denied-test"
+
+    # 2. 未知指标调用 (unknown_metric)
+    unknown_metric_payload = {
+        "actor_role": "instructor",
+        "actor_id": "probe-actor",
+        "metrics": ["non_existent_metric"],
+        "date_from": "2026-04-01",
+        "date_to": "2026-04-30",
+        "trace_id": "trace-probe-test",
+    }
+    probe_res = await kpi_query_module.query_support_kpis(unknown_metric_payload, registry_path=REGISTRY_PATH)
+    assert probe_res["allowed"] is False
+    assert probe_res["denial_code"] == "METRIC_DENIED"
+
+    insert_stmt_probe = captured["executed_statements"][-1]
+    assert "INSERT INTO audit_log" in insert_stmt_probe["query"]
+    assert insert_stmt_probe["args"][0] == probe_res["audit_id"]
+    assert insert_stmt_probe["args"][2] == "probe-actor"
+    assert insert_stmt_probe["args"][5] == "METRIC_DENIED"
+    assert insert_stmt_probe["args"][8] == "trace-probe-test"
+

@@ -75,7 +75,27 @@ class TicketValidator:
             errors.append("ticket_id format invalid")
         if not ticket.get("created_at"):
             errors.append("created_at required")
+        # 终态时间质量门禁：resolved/closed 必须有 resolved_at，否则降级为 warn
+        status = str(ticket.get("status", "")).lower()
+        if status in ("resolved", "closed") and not ticket.get("resolved_at"):
+            if ticket.get("quality_gate") == "pass":
+                ticket["quality_gate"] = "warn"
+                logger.warning(
+                    f"Ticket {ticket.get('ticket_id')} has terminal status '{status}' but null resolved_at; downgraded quality_gate to 'warn'"
+                )
         return errors
+
+    def check_quality(self, ticket: dict) -> tuple[str, list[str]]:
+        """评估工单契约与质量状态，返回 (judgment, reasons)"""
+        errs = self.validate(ticket)
+        if errs:
+            return "reject", errs
+        status = str(ticket.get("status", "")).lower()
+        reasons = []
+        if status in ("resolved", "closed") and not ticket.get("resolved_at"):
+            reasons.append(f"terminal status '{status}' has null resolved_at")
+            return "warn", reasons
+        return "pass", []
 
 
 # ── 写入 DB ───────────────────────────────────────────────────────────────────
@@ -247,10 +267,30 @@ async def run_ingest(
     limit: int | None = None,
     report_path: Path | None = None,
     state_path: Path | None = DEFAULT_STATE_PATH,
+    start_cursor: str | None = None,
+    end_cursor: str | None = None,
 ) -> dict:
     from pipelines.ingestion.db import acquire, close_pool
 
     validator = TicketValidator()
+
+    start_dt = _parse_dt(start_cursor) if start_cursor else None
+    end_dt = _parse_dt(end_cursor) if end_cursor else None
+
+    def _in_window(ticket: dict) -> bool:
+        if not start_dt and not end_dt:
+            return True
+        cursor_str = _ticket_cursor(ticket)
+        if not cursor_str:
+            return True
+        cursor_dt = _parse_dt(cursor_str)
+        if not cursor_dt:
+            return True
+        if start_dt and cursor_dt < start_dt:
+            return False
+        if end_dt and cursor_dt > end_dt:
+            return False
+        return True
 
     stats = {
         "total": 0, "valid": 0, "invalid": 0,
@@ -267,6 +307,8 @@ async def run_ingest(
     try:
         if dry_run:
             async for ticket in iter_jsonl(input_path):
+                if not _in_window(ticket):
+                    continue
                 if limit and stats["total"] >= limit:
                     break
 
@@ -285,6 +327,8 @@ async def run_ingest(
             async with acquire() as conn:
                 await ensure_ticket_bronze_idempotency(conn)
                 async for ticket in iter_jsonl(input_path):
+                    if not _in_window(ticket):
+                        continue
                     if limit and stats["total"] >= limit:
                         break
 

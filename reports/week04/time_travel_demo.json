@@ -1,0 +1,18 @@
+{
+  "report_version": "week04_time_travel_demo_v1",
+  "generated_at": "2026-08-31T15:27:03.368538+00:00",
+  "table": "silver.ticket_fact",
+  "snapshot_count": 7,
+  "current_snapshot_id": 3102956398352179151,
+  "current_row_count": 482,
+  "selected_snapshot_id": 7096804225126005740,
+  "selected_snapshot_row_count": 480,
+  "compare_snapshot_id": 3102956398352179151,
+  "compare_snapshot_row_count": 482,
+  "row_count_delta": 2,
+  "status": "ok",
+  "notes": [
+    "Use this demo after at least one successful materialization.",
+    "Compare before/after snapshots to verify that backfilled rows are restored in new snapshot while historical snapshot preserves old state."
+  ]
+}

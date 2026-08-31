@@ -7,10 +7,10 @@
   "end_cursor": "2026-04-24T00:15:00Z",
   "checkpoint_snapshot": {
     "source_id": "structured:tickets:week03_smoke",
-    "last_processed_cursor": "2026-04-24T00:10:00Z",
-    "last_success_batch_id": "batch-20260424-backfill",
-    "last_run_id": "ticket-ingest::batch-20260424-backfill",
-    "updated_at": "2026-08-31T15:26:10.605764+00:00"
+    "last_processed_cursor": "2026-04-23T23:59:59Z",
+    "last_success_batch_id": "batch-20260423-seed",
+    "last_run_id": "ticket-ingest::batch-20260423-seed",
+    "updated_at": "2026-04-24T00:00:00+00:00"
   },
   "execution_plan": [
     "Resolve source scope for structured:tickets:week03_smoke.",
@@ -28,11 +28,11 @@
     "valid": 2,
     "invalid": 0,
     "processed": 2,
-    "inserted": 0,
-    "skipped": 2,
+    "inserted": 2,
+    "skipped": 0,
     "errors": 0,
-    "bronze_inserted": 0,
-    "bronze_duplicates": 2,
+    "bronze_inserted": 2,
+    "bronze_duplicates": 0,
     "silver_upserted": 2,
     "batch_id": "batch-20260424-backfill",
     "input": "tests/integration/fixtures/week03/tickets-smoke.jsonl",
@@ -40,5 +40,5 @@
     "state_path": "data/canonization/checkpoints/week03_ingest_state.json",
     "checkpoints_written": 1
   },
-  "generated_at": "2026-08-31T15:26:16.436072+00:00"
+  "generated_at": "2026-08-31T15:26:08.357896+00:00"
 }

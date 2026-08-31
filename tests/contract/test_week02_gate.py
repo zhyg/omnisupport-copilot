@@ -166,3 +166,31 @@ def test_week07_multimodal_manifest_validates_real_asset_contracts():
     assert len(results) == 1
     assert results[0].accepted_count == 4
     assert results[0].fail_count == 0
+
+
+def test_ticket_contract_rejects_done_status(week02_samples: dict):
+    """验证阶段二扣分项：非法枚举状态 done 必须被契约拒绝。"""
+    schema = load_json(CONTRACT_PATHS["ticket"])
+    record = dict(week02_samples["valid_records"]["ticket"])
+    record["status"] = "done"
+    with pytest.raises(jsonschema.ValidationError) as excinfo:
+        jsonschema.validate(record, schema)
+    assert "'done' is not one of" in str(excinfo.value)
+
+
+def test_ticket_terminal_status_without_resolved_at_triggers_quality_warn(week02_samples: dict):
+    """验证阶段二质量处理：status in ('resolved', 'closed') 且 resolved_at 为空时，quality_gate 自动判定为 warn。"""
+    from pipelines.ingestion.ticket_ingest import TicketValidator
+
+    validator = TicketValidator()
+
+    for terminal_status in ("resolved", "closed"):
+        record = dict(week02_samples["valid_records"]["ticket"])
+        record["status"] = terminal_status
+        record["resolved_at"] = None
+        record["quality_gate"] = "pass"
+
+        judgment, reasons = validator.check_quality(record)
+        assert judgment == "warn"
+        assert any("null resolved_at" in r for r in reasons)
+        assert record["quality_gate"] == "warn"
