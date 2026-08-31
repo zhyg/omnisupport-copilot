@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "OmniSupport Copilot — 多模态企业支持知识层 + 工单联动 AI 系统"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+dependencies = [
+    "boto3>=1.43.83",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

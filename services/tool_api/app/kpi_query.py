@@ -21,8 +21,53 @@ from typing import Any
 import asyncpg
 import jsonschema
 
+import logging
 from app.config import settings
 from app.metric_registry import MetricRegistry, load_metric_registry
+
+logger = logging.getLogger(__name__)
+
+
+async def _persist_audit_log(
+    conn: Any,
+    *,
+    log_id: str,
+    request_id: str,
+    actor: str | None,
+    tool_name: str,
+    args_hash: str | None,
+    result_code: str,
+    hitl_triggered: bool,
+    release_id: str | None,
+    trace_id: str | None,
+    tenant_id: str,
+) -> None:
+    if conn is None:
+        return
+    execute_fn = getattr(conn, "execute", None)
+    if execute_fn and callable(execute_fn):
+        try:
+            await execute_fn(
+                """
+                INSERT INTO audit_log (
+                    log_id, request_id, actor, tool_name, args_hash, result_code,
+                    hitl_triggered, release_id, trace_id, tenant_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                """,
+                log_id,
+                request_id,
+                actor,
+                tool_name,
+                args_hash,
+                result_code,
+                hitl_triggered,
+                release_id,
+                trace_id,
+                tenant_id,
+            )
+        except Exception as exc:
+            logger.warning("Failed to persist audit log to PostgreSQL: %s", exc)
+
 
 LOCAL_FILE = Path(__file__).resolve()
 TOOL_CONTRACT_CANDIDATES = [
@@ -160,6 +205,14 @@ def _validate_request(payload: dict[str, Any], registry: MetricRegistry) -> dict
             format_checker=jsonschema.FormatChecker(),
         )
     except jsonschema.ValidationError as exc:
+        if exc.validator == "enum" and exc.path and exc.path[0] == "metrics":
+            return _deny(
+                "METRIC_DENIED",
+                f"metrics are not registered or not role-allowed: {exc.instance}",
+                payload,
+                registry,
+                policy_applied=["tool_contract", "metric_registry"],
+            )
         return _deny("SCHEMA_VALIDATION_FAILED", exc.message, payload, registry, policy_applied=["tool_contract"])
 
     actor_role = payload["actor_role"]
@@ -343,6 +396,30 @@ async def query_support_kpis(
         connection = await asyncpg.connect(_normalize_dsn(database_url or settings.database_url))
         try:
             records = await connection.fetch(query, *params)
+            rows = [{key: _json_safe(value) for key, value in record.items()} for record in records]
+            policy_applied = list(BASE_POLICIES)
+            policy_applied.append("semantic_aggregation")
+            if payload.get("tenant_id"):
+                policy_applied.append("tenant_scope_filter")
+            if payload.get("actor_role") != "admin" and payload.get("actor_org_ids"):
+                policy_applied.append("org_scope_filter")
+            if any(registry.metrics[name].definition_status == "experimental_proxy" for name in payload["metrics"]):
+                policy_applied.append("experimental_metric_ack")
+            audit = _audit(payload, registry, row_count=len(rows), policy_applied=policy_applied)
+
+            await _persist_audit_log(
+                connection,
+                log_id=audit["audit_id"],
+                request_id=str(uuid.uuid4()),
+                actor=payload.get("actor_id") or payload.get("actor_role"),
+                tool_name="query_support_kpis_v1",
+                args_hash=audit.get("query_fingerprint"),
+                result_code="SUCCESS",
+                hitl_triggered=False,
+                release_id=audit.get("release_id"),
+                trace_id=audit.get("trace_id"),
+                tenant_id=payload.get("tenant_id") or settings.default_tenant_id,
+            )
         finally:
             await connection.close()
     except Exception as exc:
@@ -355,16 +432,6 @@ async def query_support_kpis(
             status="error",
         )
 
-    rows = [{key: _json_safe(value) for key, value in record.items()} for record in records]
-    policy_applied = list(BASE_POLICIES)
-    policy_applied.append("semantic_aggregation")
-    if payload.get("tenant_id"):
-        policy_applied.append("tenant_scope_filter")
-    if payload.get("actor_role") != "admin" and payload.get("actor_org_ids"):
-        policy_applied.append("org_scope_filter")
-    if any(registry.metrics[name].definition_status == "experimental_proxy" for name in payload["metrics"]):
-        policy_applied.append("experimental_metric_ack")
-    audit = _audit(payload, registry, row_count=len(rows), policy_applied=policy_applied)
     return {
         "allowed": True,
         "status": "ok",

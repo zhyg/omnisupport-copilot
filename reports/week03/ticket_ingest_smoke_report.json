@@ -1,18 +1,27 @@
 {
   "report_version": "week03_ticket_ingest_smoke_report_v1",
   "report_kind": "ticket_ingest_smoke",
-  "run_id": "ticket-ingest::batch-week03-ticket-smoke",
-  "generated_at": "2026-04-23T17:32:03.814256+00:00",
-  "batch_id": "batch-week03-ticket-smoke",
+  "run_id": "ticket-ingest::backfill-structured-tickets-seed_batch_001",
+  "generated_at": "2026-08-31T14:26:27.329723+00:00",
+  "batch_id": "backfill-structured-tickets-seed_batch_001",
   "input": "tests/integration/fixtures/week03/tickets-smoke.jsonl",
-  "dry_run": true,
+  "dry_run": false,
   "summary": {
     "total": 2,
     "valid": 2,
     "invalid": 0,
+    "processed": 2,
     "inserted": 0,
     "skipped": 2,
-    "errors": 0
+    "errors": 0,
+    "bronze_inserted": 0,
+    "bronze_duplicates": 2,
+    "silver_upserted": 2
+  },
+  "checkpoint": {
+    "state_path": "/home/zhangyangong/workspace/omnisupport-copilot/data/canonization/checkpoints/week03_ingest_state.json",
+    "checkpoints_written": 1,
+    "skipped_reason": null
   },
   "status": "ok",
   "recommended_action": "proceed_to_next_stage"

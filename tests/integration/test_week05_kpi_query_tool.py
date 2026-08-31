@@ -264,3 +264,53 @@ async def test_query_support_kpis_allows_experimental_metric_with_ack(monkeypatc
     assert result["allowed"] is True
     assert result["rows"][0]["metric_name"] == "first_resolution_rate"
     assert "experimental_metric_ack" in result["policy_applied"]
+
+
+@pytest.mark.asyncio
+async def test_query_support_kpis_persists_audit_log(monkeypatch, kpi_query_module):
+    captured = {"executed_statements": []}
+
+    class FakeConnection:
+        async def fetch(self, query, *params):
+            captured["query"] = query
+            return [
+                {
+                    "metric_date": "2026-04-24",
+                    "metric_name": "ticket_count",
+                    "metric_value": 5,
+                    "data_release_id": "week05-dev-local",
+                    "generated_at": "2026-04-24T10:00:00",
+                }
+            ]
+
+        async def execute(self, query, *args):
+            captured["executed_statements"].append({"query": query, "args": args})
+
+        async def close(self):
+            captured["closed"] = True
+
+    async def fake_connect(dsn):
+        return FakeConnection()
+
+    monkeypatch.setattr(kpi_query_module.asyncpg, "connect", fake_connect)
+    payload = {
+        "actor_role": "instructor",
+        "actor_id": "audit-test-actor",
+        "metrics": ["ticket_count"],
+        "date_from": "2026-04-01",
+        "date_to": "2026-04-30",
+        "trace_id": "trace-audit-test",
+    }
+
+    result = await kpi_query_module.query_support_kpis(payload, registry_path=REGISTRY_PATH)
+
+    assert result["allowed"] is True
+    assert len(captured["executed_statements"]) == 1
+    insert_stmt = captured["executed_statements"][0]
+    assert "INSERT INTO audit_log" in insert_stmt["query"]
+    assert insert_stmt["args"][0] == result["audit_id"]
+    assert insert_stmt["args"][2] == "audit-test-actor"
+    assert insert_stmt["args"][3] == "query_support_kpis_v1"
+    assert insert_stmt["args"][5] == "SUCCESS"
+    assert insert_stmt["args"][8] == "trace-audit-test"
+

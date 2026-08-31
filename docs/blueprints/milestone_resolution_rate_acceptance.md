@@ -26,7 +26,7 @@
 | **指标标识** | `resolution_rate` | 语义层、注册表与受控工具统一标识符 |
 | **指标中文名** | 工单解决率 | 报表与 Copilot UI 显示名称 |
 | **指标类型** | `ratio` (比率型) | 属于派生比率聚合指标 |
-| **分子 (Numerator)** | `resolved_ticket_count` | 统计窗口内状态为已解决（`status = 'resolved'`）的工单总数。若未来业务规则扩展 `closed` 状态进入终态，需经数据契约修订。 |
+| **分子 (Numerator)** | `resolved_ticket_count` | 统计窗口内状态为已解决或已关闭（`status in ('resolved', 'closed')`）的工单总数。包含已关闭终态工单，确保已闭环工单全量纳入统计。 |
 | **分母 (Denominator)** | `ticket_count` | 统计窗口内创建的工单总量（`count(*)`）。 |
 | **计算公式** | `resolved_ticket_count / nullif(ticket_count, 0)` | 强制执行除零保护（Null-division Safe），当分母为 0 时返回 NULL。 |
 | **数值范围** | `[0.0000, 1.0000]` | 取值严格受限在 0 到 1 之间，保留 4 位小数（`numeric(12, 4)`）。 |
@@ -34,7 +34,7 @@
 | **推荐分析维度** | `metric_date` × `product_line` | BI 看板与 Copilot 默认主分析切片。 |
 
 ### 2.2 状态判定与异常值处理
-- **已解决判定**：基于 `ticket_contract.json` 枚举约束（`["open", "pending", "in_progress", "resolved", "closed", "escalated"]`），底层 `stg_tickets` 标准化为 `lower(status) = 'resolved'`。
+- **已解决判定**：基于 `ticket_contract.json` 枚举约束（`["open", "pending", "in_progress", "resolved", "closed", "escalated"]`），底层 `stg_tickets` 标准化为 `lower(status) in ('resolved', 'closed')`。已解决（resolved）与已关闭（closed）均属于服务完成闭环终态。
 - **缺失与空值处理**：工单若缺失创建日期，在入湖契约门禁阶段直接拦截阻断；若无已解决工单，分子为 0，比率为 0.0000。
 - **跨周期工单口径**：分母基于工单创建日期（Cohort 方式归属在 `created_date`），保证同批次工单解决率计算口径的一致性与可回溯性。
 
@@ -42,8 +42,8 @@
 
 ## 3. PII 敏感度与数据安全分级
 
-### 3.1 指标本身分级：`none` (聚合级安全)
-- `resolution_rate` 本身是按日与组织维度的宏观统计比率（Ratio），不包含任何个人身份信息，因而指标本身的敏感度定级为 **`none`**。
+### 3.1 指标本身分级：`low` (聚合级安全)
+- `resolution_rate` 本身是按日与组织维度的宏观统计比率（Ratio），不包含任何个人身份信息，因而指标本身的敏感度定级为 **`low`**（统一遵循 `metric_registry_v1.yml` 的低敏感度标准定级）。
 
 ### 3.2 严禁向 Agent 暴露 `customer_id` / PII 字段的根本原因
 1. **防止横向越权与精准关联推断**：`customer_id`、`contact_email`、`subject`、`body` 属于 High PII。若大模型或 Copilot 能够直接获取带 `customer_id` 的细粒度数据，攻击者可通过特定过滤条件或少样本逆向推断出具体企业客户的运维状况、故障频率及个人身份。

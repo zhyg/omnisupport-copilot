@@ -79,12 +79,12 @@ def _markdown(payload: dict) -> str:
         "",
         f"generated_at: `{payload['generated_at']}`",
         "",
-        "| table | rows | snapshots | files | avg file size | latest operation |",
-        "|---|---:|---:|---:|---:|---|",
+        "| table | rows | snapshots | files | avg file size | min file size | max file size | latest snapshot id | latest operation |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for item in payload["tables"]:
         lines.append(
-            "| {table} | {row_count} | {snapshot_count} | {file_count} | {avg_file_size:.1f} | {latest_operation} |".format(
+            "| {table} | {row_count} | {snapshot_count} | {file_count} | {avg_file_size:.1f} | {min_file_size} | {max_file_size} | {latest_snapshot_id} | {latest_operation} |".format(
                 **item
             )
         )

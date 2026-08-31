@@ -49,7 +49,21 @@
         "maxItems": 12,
         "items": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9_]*$"
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "enum": [
+            "ticket_count",
+            "open_ticket_count",
+            "p1_ticket_count",
+            "sla_breach_count",
+            "escalation_count",
+            "avg_backlog_age_days",
+            "avg_first_response_minutes",
+            "avg_handle_time_minutes",
+            "first_resolution_rate",
+            "escalation_rate",
+            "sla_breach_rate",
+            "resolution_rate"
+          ]
         }
       },
       "date_from": {

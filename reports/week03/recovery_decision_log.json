@@ -1,21 +1,44 @@
 {
   "mode": "backfill",
-  "source_id": "structured:tickets:synthetic",
-  "dry_run": true,
+  "source_id": "structured:tickets:seed_batch_001",
+  "dry_run": false,
   "batch_id": null,
-  "start_cursor": "2026-05-01T00:00:00Z",
-  "end_cursor": "2026-05-02T00:00:00Z",
-  "checkpoint_snapshot": null,
+  "start_cursor": "2026-03-31T00:00:00Z",
+  "end_cursor": "2026-04-01T00:00:00Z",
+  "checkpoint_snapshot": {
+    "source_id": "structured:tickets:seed_batch_001",
+    "last_processed_cursor": "2026-03-31T00:00:00Z",
+    "last_success_batch_id": "batch-20260331-001",
+    "last_run_id": "seed-loader::batch-20260331-001",
+    "updated_at": "2026-04-24T00:00:00+00:00"
+  },
   "execution_plan": [
-    "Resolve source scope for structured:tickets:synthetic.",
+    "Resolve source scope for structured:tickets:seed_batch_001.",
     "Inspect the latest ingest checkpoint before taking recovery action.",
     "Construct a historical cursor window and run the batch in dry-run first.",
-    "Backfill cursor window from 2026-05-01T00:00:00Z to 2026-05-02T00:00:00Z.",
-    "Write a Week03 recovery decision report before touching downstream storage."
+    "Backfill cursor window from 2026-03-31T00:00:00Z to 2026-04-01T00:00:00Z.",
+    "Write a Week03 recovery decision report before touching downstream storage.",
+    "Run ticket_ingest through the recovery entrypoint; non-dry-run execution uses the idempotent raw-event guard and checkpoint update."
   ],
   "warnings": [],
   "recommended_action": "proceed_to_next_stage",
   "status": "ok",
-  "execution_result": null,
-  "generated_at": "2026-08-31T08:15:17.066185+00:00"
+  "execution_result": {
+    "total": 2,
+    "valid": 2,
+    "invalid": 0,
+    "processed": 2,
+    "inserted": 0,
+    "skipped": 2,
+    "errors": 0,
+    "bronze_inserted": 0,
+    "bronze_duplicates": 2,
+    "silver_upserted": 2,
+    "batch_id": "backfill-structured-tickets-seed_batch_001",
+    "input": "tests/integration/fixtures/week03/tickets-smoke.jsonl",
+    "dry_run": false,
+    "state_path": "/home/zhangyangong/workspace/omnisupport-copilot/data/canonization/checkpoints/week03_ingest_state.json",
+    "checkpoints_written": 1
+  },
+  "generated_at": "2026-08-31T14:26:24.877286+00:00"
 }
