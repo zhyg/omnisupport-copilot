@@ -1,26 +1,21 @@
 {
-  "mode": "replay",
-  "source_id": "structured:tickets:seed_batch_001",
+  "mode": "backfill",
+  "source_id": "structured:tickets:synthetic",
   "dry_run": true,
   "batch_id": null,
-  "start_cursor": null,
-  "end_cursor": null,
-  "checkpoint_snapshot": {
-    "source_id": "structured:tickets:seed_batch_001",
-    "last_processed_cursor": "2026-03-31T00:00:00Z",
-    "last_success_batch_id": "batch-20260331-001",
-    "last_run_id": "seed-loader::batch-20260331-001",
-    "updated_at": "2026-04-24T00:00:00+00:00"
-  },
+  "start_cursor": "2026-05-01T00:00:00Z",
+  "end_cursor": "2026-05-02T00:00:00Z",
+  "checkpoint_snapshot": null,
   "execution_plan": [
-    "Resolve source scope for structured:tickets:seed_batch_001.",
+    "Resolve source scope for structured:tickets:synthetic.",
     "Inspect the latest ingest checkpoint before taking recovery action.",
-    "Reprocess an already known historical batch from the raw zone.",
-    "Replay batch batch-20260331-001.",
+    "Construct a historical cursor window and run the batch in dry-run first.",
+    "Backfill cursor window from 2026-05-01T00:00:00Z to 2026-05-02T00:00:00Z.",
     "Write a Week03 recovery decision report before touching downstream storage."
   ],
   "warnings": [],
   "recommended_action": "proceed_to_next_stage",
   "status": "ok",
-  "generated_at": "2026-04-23T17:32:04.100890+00:00"
+  "execution_result": null,
+  "generated_at": "2026-08-31T08:15:17.066185+00:00"
 }

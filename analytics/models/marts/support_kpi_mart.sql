@@ -64,7 +64,8 @@ metric_rows as (
             ('avg_handle_time_minutes', daily.avg_handle_time_minutes::numeric),
             ('first_resolution_rate', daily.first_resolution_rate::numeric),
             ('escalation_rate', daily.escalation_rate::numeric),
-            ('sla_breach_rate', daily.sla_breach_rate::numeric)
+            ('sla_breach_rate', daily.sla_breach_rate::numeric),
+            ('resolution_rate', (daily.resolved_ticket_count::numeric / nullif(daily.ticket_count::numeric, 0))::numeric(12, 4))
     ) as metrics(metric_name, metric_value)
     where metrics.metric_value is not null
 )
